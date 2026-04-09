@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const topics = [
   {
@@ -122,6 +123,11 @@ export default function Home() {
             recall, not passive reading.
           </p>
         </header>
+
+        {/* Search */}
+        <div className="mb-14">
+          <GlobalSearch />
+        </div>
 
         {/* Mode badges */}
         <div className="flex flex-wrap justify-center gap-3 mb-14">
