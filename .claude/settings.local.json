@@ -19,7 +19,10 @@
       "Read(//Users/shekolla/Downloads/interview-prep-2/**)",
       "Bash(grep -c 'wrong:' content/*/data.ts)",
       "Bash(npx next:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(sips --getProperty all /Users/shekolla/Downloads/interview-prep-2/public/og-image.svg)",
+      "Bash(sips -s format png --resampleWidth 1200 /Users/shekolla/Downloads/interview-prep-2/public/og-image.svg --out /Users/shekolla/Downloads/interview-prep-2/public/og-image.png)",
+      "Bash(sips --getProperty pixelWidth --getProperty pixelHeight --getProperty format /Users/shekolla/Downloads/interview-prep-2/public/og-image.png)"
     ]
   }
 }
