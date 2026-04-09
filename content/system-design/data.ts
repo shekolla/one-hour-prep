@@ -719,6 +719,7 @@ const practiceQuestions: PracticeQuestion[] = [
 export const topicData: TopicData = {
   topicTitle: "System Design",
   topicMeta: "60–90 min · Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "cap-theorem",
     "sharding",

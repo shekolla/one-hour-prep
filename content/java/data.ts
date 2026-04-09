@@ -1256,6 +1256,7 @@ public class GenericsWildcard {
 export const topicData: TopicData = {
   topicTitle: "Java",
   topicMeta: "50–60 min · Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "equals-hashcode",
     "hashmap-internals",

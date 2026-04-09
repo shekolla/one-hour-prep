@@ -980,6 +980,7 @@ console.log(count); // ?`,
 export const topicData: TopicData = {
   topicTitle: "Node.js",
   topicMeta: "45–60 min · Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "event-loop-phases",
     "libuv",

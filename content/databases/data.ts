@@ -945,6 +945,7 @@ CREATE TABLE events (
 export const topicData: TopicData = {
   topicTitle: "Databases",
   topicMeta: "60\u201375 min \xB7 Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "oltp-vs-olap",
     "postgresql",

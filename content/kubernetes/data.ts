@@ -844,6 +844,7 @@ const lastHourSummary: LastHourSummary = {
 export const topicData: TopicData = {
   topicTitle: "Kubernetes & Docker",
   topicMeta: "50–60 min · Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "control-plane",
     "pod",

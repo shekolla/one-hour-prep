@@ -66,6 +66,7 @@ export interface PracticeQuestion {
 export interface TopicData {
   topicTitle: string;
   topicMeta: string;
+  lastUpdated: string; // ISO date string, e.g. "2026-04-10"
   lastHourConceptIds: string[];
   lastHourSummary: LastHourSummary;
   mentalModel: MentalModel;

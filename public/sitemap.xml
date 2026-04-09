@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://interviewprep.dev/</loc><priority>1.0</priority></url>
+  <url><loc>https://interviewprep.dev/topics/python/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/javascript/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/nodejs/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/java/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/kubernetes/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/dsa/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/system-design/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/hld/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/lld/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/databases/</loc><priority>0.8</priority></url>
+</urlset>

@@ -949,6 +949,7 @@ const practiceQuestions: PracticeQuestion[] = [
 export const topicData: TopicData = {
   topicTitle: "DSA",
   topicMeta: "60–75 min · Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "big-o",
     "two-pointers",

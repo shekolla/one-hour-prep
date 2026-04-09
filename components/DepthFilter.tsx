@@ -26,20 +26,21 @@ export default function DepthFilter({
   onToggleLastHour,
 }: DepthFilterProps) {
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap gap-2 items-center" role="toolbar" aria-label="Content filters">
       {/* Depth levels */}
-      <div className="flex bg-gray-900 border border-gray-800 rounded-lg p-1 gap-1">
+      <div className="flex bg-gray-900 border border-gray-800 rounded-lg p-1 gap-1" role="group" aria-label="Depth level">
         {levels.map(({ value, label, dot }) => (
           <button
             key={value}
             onClick={() => onChange(value)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            aria-pressed={active === value}
+            className={`flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-md text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
               active === value
                 ? "bg-gray-700 text-white"
                 : "text-gray-400 hover:text-gray-200"
             }`}
           >
-            <div className={`w-2 h-2 rounded-full ${dot}`} />
+            <div className={`w-2 h-2 rounded-full ${dot}`} aria-hidden="true" />
             {label}
           </button>
         ))}
@@ -48,25 +49,29 @@ export default function DepthFilter({
       {/* Trap toggle */}
       <button
         onClick={onToggleTraps}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+        aria-pressed={showTraps}
+        aria-label="Show interview traps"
+        className={`flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-sm font-medium border transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
           showTraps
             ? "bg-orange-500/20 border-orange-500/40 text-orange-300"
             : "bg-gray-900 border-gray-800 text-gray-400 hover:text-gray-200"
         }`}
       >
-        ⚠ Traps
+        <span aria-hidden="true">⚠</span> Traps
       </button>
 
       {/* Last 1 Hour Mode */}
       <button
         onClick={onToggleLastHour}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+        aria-pressed={lastHourMode}
+        aria-label="Toggle last 1 hour revision mode"
+        className={`flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-sm font-medium border transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
           lastHourMode
             ? "bg-indigo-600/30 border-indigo-500/50 text-indigo-300"
             : "bg-gray-900 border-gray-800 text-gray-400 hover:text-gray-200"
         }`}
       >
-        ⏱ Last 1 Hour
+        <span aria-hidden="true">⏱</span> Last 1 Hour
       </button>
     </div>
   );

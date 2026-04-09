@@ -72,9 +72,12 @@ export default function KnowledgeTreeVisual({
           <div className="w-0.5 h-5 bg-gray-700" />
         </div>
 
-        {/* ── Horizontal connector rail ─────────────────────────── */}
+        {/* ── Horizontal connector rail (desktop) / vertical line (mobile) ── */}
         <div className="hidden md:block relative mx-8">
           <div className="border-t-2 border-gray-700 mx-auto" style={{ width: "80%" }} />
+        </div>
+        <div className="md:hidden flex justify-center">
+          <div className="w-0.5 h-3 bg-gray-700" />
         </div>
 
         {/* ── Category grid ─────────────────────────────────────── */}

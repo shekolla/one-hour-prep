@@ -14,7 +14,12 @@
       "Bash(ls -lt /private/tmp/claude-501/-Users-shekolla-Downloads-interview-prep-2/6b0ea6cb-50f7-4125-975b-e7612c99f4fc/tasks/*.output)",
       "Bash(python3 -c \"import sys,json; lines=sys.stdin.readlines\\(\\); [print\\(json.loads\\(l\\).get\\('message',{}\\).get\\('content',''\\)[:500] if isinstance\\(json.loads\\(l\\).get\\('message',{}\\).get\\('content',''\\), str\\) else str\\(json.loads\\(l\\).get\\('message',{}\\).get\\('content',''\\)\\)[:500]\\) for l in lines]\")",
       "Bash(python3 -c \" import sys, json for line in sys.stdin: try: data = json.loads\\(line\\) content = data.get\\('message', {}\\).get\\('content', ''\\) if isinstance\\(content, list\\): for c in content: if isinstance\\(c, dict\\) and c.get\\('type'\\) == 'text': print\\(c['text'][:800]\\) elif isinstance\\(content, str\\) and len\\(content\\) > 10: print\\(content[:800]\\) except: pass \")",
-      "Bash(python3 -c \" import sys, json for line in sys.stdin: try: data = json.loads\\(line\\) content = data.get\\('message', {}\\).get\\('content', ''\\) if isinstance\\(content, list\\): for c in content: if isinstance\\(c, dict\\) and c.get\\('type'\\) == 'text': print\\(c['text'][:1200]\\) elif isinstance\\(content, str\\) and len\\(content\\) > 10: print\\(content[:1200]\\) except: pass \")"
+      "Bash(python3 -c \" import sys, json for line in sys.stdin: try: data = json.loads\\(line\\) content = data.get\\('message', {}\\).get\\('content', ''\\) if isinstance\\(content, list\\): for c in content: if isinstance\\(c, dict\\) and c.get\\('type'\\) == 'text': print\\(c['text'][:1200]\\) elif isinstance\\(content, str\\) and len\\(content\\) > 10: print\\(content[:1200]\\) except: pass \")",
+      "Bash(grep -c 'whyAsked:' content/*/data.ts)",
+      "Read(//Users/shekolla/Downloads/interview-prep-2/**)",
+      "Bash(grep -c 'wrong:' content/*/data.ts)",
+      "Bash(npx next:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

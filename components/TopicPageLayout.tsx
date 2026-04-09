@@ -20,6 +20,7 @@ const sections = [
 export default function TopicPageLayout({
   topicTitle,
   topicMeta,
+  lastUpdated,
   lastHourConceptIds,
   lastHourSummary,
   mentalModel,
@@ -44,15 +45,24 @@ export default function TopicPageLayout({
     setActiveConceptId(conceptId);
     setActiveSection("core-concepts");
     setTimeout(() => {
-      document.getElementById(`concept-${conceptId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const el = document.getElementById(`concept-${conceptId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-indigo-500/50");
+        setTimeout(() => el.classList.remove("ring-2", "ring-indigo-500/50"), 2000);
+      }
     }, 50);
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       {/* Header */}
       <div className="mb-8">
-        <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm transition-colors mb-4 inline-block">
+        <Link href="/" aria-label="Back to all topics" className="text-gray-500 hover:text-gray-300 text-sm transition-colors mb-4 inline-block focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2">
           ← All Topics
         </Link>
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -60,6 +70,9 @@ export default function TopicPageLayout({
             <h1 className="text-3xl font-bold text-white mb-1">{topicTitle}</h1>
             <p className="text-gray-400 text-sm">
               {topicMeta} · {concepts.length} concepts
+            </p>
+            <p className="text-gray-600 text-xs mt-1">
+              Last updated: {new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
             </p>
           </div>
           <DepthFilter
@@ -138,13 +151,14 @@ export default function TopicPageLayout({
       )}
 
       {/* Mobile nav — outside flex so it doesn't push content */}
-      <div className="md:hidden mb-6">
+      <nav className="md:hidden mb-6" aria-label="Topic sections">
         <div className="flex gap-2 overflow-x-auto pb-1">
           {sections.map(({ id, label }) => (
             <button
               key={id}
               onClick={() => setActiveSection(id)}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              aria-pressed={activeSection === id}
+              className={`shrink-0 px-3 py-2.5 rounded-lg text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
                 activeSection === id
                   ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
                   : "text-gray-500 border border-gray-800 hover:text-gray-300"
@@ -154,16 +168,17 @@ export default function TopicPageLayout({
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
       <div className="flex gap-8">
         {/* Sidebar — desktop */}
-        <nav className="hidden md:flex flex-col gap-1 w-44 shrink-0 sticky top-8 self-start">
+        <nav className="hidden md:flex flex-col gap-1 w-44 shrink-0 sticky top-8 self-start" aria-label="Topic sections">
           {sections.map(({ id, label }) => (
             <button
               key={id}
               onClick={() => setActiveSection(id)}
-              className={`text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              aria-pressed={activeSection === id}
+              className={`text-left px-3 py-2 rounded-lg text-sm font-medium transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
                 activeSection === id
                   ? "bg-indigo-600/20 text-indigo-300"
                   : "text-gray-500 hover:text-gray-300"
@@ -356,6 +371,16 @@ export default function TopicPageLayout({
           )}
         </div>
       </div>
+
+      {/* Back to Top */}
+      <button
+        onClick={scrollToTop}
+        aria-label="Back to top"
+        data-print-hidden
+        className="fixed bottom-6 right-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2"
+      >
+        ↑
+      </button>
     </div>
   );
 }

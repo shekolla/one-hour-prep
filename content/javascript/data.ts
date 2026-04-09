@@ -1132,6 +1132,7 @@ console.log(gen.next()); // ?`,
 export const topicData: TopicData = {
   topicTitle: "JavaScript",
   topicMeta: "45–60 min · Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "event-loop-tick",
     "closure",

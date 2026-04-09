@@ -971,6 +971,7 @@ new service onboarding from 3 weeks to 1 day.`,
 export const topicData: TopicData = {
   topicTitle: "High-Level Design",
   topicMeta: "60–75 min · Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "monolith-vs-microservices",
     "bounded-context",

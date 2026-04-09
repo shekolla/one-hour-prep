@@ -14,7 +14,7 @@ export default function PracticeCard({ item }: { item: PracticeQuestion }) {
       </pre>
       <button
         onClick={() => setRevealed((v) => !v)}
-        className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+        className="text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 rounded"
       >
         {revealed ? "Hide Answer" : "Show Answer"}
       </button>

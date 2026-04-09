@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Hide non-essential UI for printing */
+  nav,
+  button,
+  [data-print-hidden] {
+    display: none !important;
+  }
+
+  /* Make all dark backgrounds white for paper */
+  * {
+    background-color: white !important;
+    border-color: #ccc !important;
+  }
+
+  /* Make all text readable on paper */
+  h1, h2, h3, h4, h5, h6, p, span, li, td, th, pre, code, a, div {
+    color: black !important;
+  }
+
+  /* Ensure content fits on page */
+  .max-w-5xl,
+  .max-w-4xl {
+    max-width: 100% !important;
+  }
+}

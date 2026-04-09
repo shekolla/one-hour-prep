@@ -867,6 +867,7 @@ class UserService {
 export const topicData: TopicData = {
   topicTitle: "Low-Level Design",
   topicMeta: "50–60 min · Mid to Senior level",
+  lastUpdated: "2026-04-10",
   lastHourConceptIds: [
     "srp",
     "dip",

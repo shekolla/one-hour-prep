@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Concept, DepthLevel } from "@/content/types";
 
 const depthConfig = {
@@ -16,8 +16,27 @@ interface ConceptCardProps {
   highlighted?: boolean;
 }
 
+function useReviewed(conceptId: string) {
+  const key = `reviewed:${conceptId}`;
+  const [reviewed, setReviewed] = useState(false);
+
+  useEffect(() => {
+    setReviewed(localStorage.getItem(key) === "1");
+  }, [key]);
+
+  const toggle = () => {
+    const next = !reviewed;
+    setReviewed(next);
+    if (next) localStorage.setItem(key, "1");
+    else localStorage.removeItem(key);
+  };
+
+  return [reviewed, toggle] as const;
+}
+
 export default function ConceptCard({ concept, activeDepth, showTraps, highlighted }: ConceptCardProps) {
   const [showInterview, setShowInterview] = useState(false);
+  const [reviewed, toggleReviewed] = useReviewed(concept.id);
 
   const levelsToShow: DepthLevel[] =
     activeDepth === "basic"
@@ -31,9 +50,26 @@ export default function ConceptCard({ concept, activeDepth, showTraps, highlight
       id={`concept-${concept.id}`}
       className={`bg-gray-900 rounded-xl p-6 space-y-4 border transition-all ${
         highlighted ? "border-indigo-500/50 ring-1 ring-indigo-500/20" : "border-gray-800"
-      }`}
+      } ${reviewed ? "opacity-70" : ""}`}
     >
-      <h3 className="text-white font-semibold text-lg">{concept.title}</h3>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className={`text-white font-semibold text-lg ${reviewed ? "line-through decoration-gray-600" : ""}`}>
+          {concept.title}
+        </h3>
+        <button
+          onClick={toggleReviewed}
+          aria-pressed={reviewed}
+          aria-label={reviewed ? "Mark as not reviewed" : "Mark as reviewed"}
+          title={reviewed ? "Reviewed" : "Mark as reviewed"}
+          className={`shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center text-xs transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
+            reviewed
+              ? "bg-green-500/20 border-green-500/50 text-green-400"
+              : "border-gray-700 text-transparent hover:border-gray-500"
+          }`}
+        >
+          {reviewed ? "✓" : ""}
+        </button>
+      </div>
 
       {/* Depth levels */}
       <div className="space-y-3">
@@ -42,7 +78,7 @@ export default function ConceptCard({ concept, activeDepth, showTraps, highlight
           return (
             <div key={level} className={`rounded-lg p-4 border ${cfg.border} ${cfg.bg}`}>
               <div className="flex items-center gap-2 mb-2">
-                <div className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                <div className={`w-2 h-2 rounded-full ${cfg.dot}`} aria-hidden="true" />
                 <span className={`text-xs font-semibold uppercase tracking-wider ${cfg.text}`}>
                   {cfg.label}
                 </span>
@@ -56,9 +92,10 @@ export default function ConceptCard({ concept, activeDepth, showTraps, highlight
       {/* Interview Answer toggle */}
       <button
         onClick={() => setShowInterview((v) => !v)}
-        className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors"
+        aria-expanded={showInterview}
+        className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 rounded"
       >
-        <span>🎤</span>
+        <span aria-hidden="true">🎤</span>
         <span>{showInterview ? "Hide" : "Show"} Interview Answer</span>
       </button>
       {showInterview && (
@@ -72,7 +109,7 @@ export default function ConceptCard({ concept, activeDepth, showTraps, highlight
         <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-orange-400 text-xs font-semibold uppercase tracking-wider">
-              ⚠ Trap
+              <span aria-hidden="true">⚠</span> Trap
             </span>
           </div>
           <p className="text-orange-200 text-sm leading-relaxed">{concept.trap}</p>
