@@ -1,0 +1,361 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import ConceptCard from "@/components/ConceptCard";
+import DepthFilter from "@/components/DepthFilter";
+import PracticeCard from "@/components/PracticeCard";
+import KnowledgeTreeVisual from "@/components/KnowledgeTreeVisual";
+import type { DepthLevel, TopicData } from "@/content/types";
+
+const sections = [
+  { id: "mental-model", label: "Mental Model" },
+  { id: "knowledge-tree", label: "Knowledge Tree" },
+  { id: "core-concepts", label: "Core Concepts" },
+  { id: "interview-patterns", label: "Interview Patterns" },
+  { id: "common-mistakes", label: "Common Mistakes" },
+  { id: "practice", label: "Practice" },
+];
+
+export default function TopicPageLayout({
+  topicTitle,
+  topicMeta,
+  lastHourConceptIds,
+  lastHourSummary,
+  mentalModel,
+  categories,
+  mentalModelTree,
+  concepts,
+  interviewPatterns,
+  commonMistakes,
+  practiceQuestions,
+}: TopicData) {
+  const [activeSection, setActiveSection] = useState("mental-model");
+  const [depth, setDepth] = useState<DepthLevel>("expected");
+  const [showTraps, setShowTraps] = useState(false);
+  const [lastHourMode, setLastHourMode] = useState(false);
+  const [activeConceptId, setActiveConceptId] = useState<string | undefined>(undefined);
+
+  const visibleConcepts = lastHourMode
+    ? concepts.filter((c) => lastHourConceptIds.includes(c.id))
+    : concepts;
+
+  const handleConceptSelect = (conceptId: string) => {
+    setActiveConceptId(conceptId);
+    setActiveSection("core-concepts");
+    setTimeout(() => {
+      document.getElementById(`concept-${conceptId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-10">
+      {/* Header */}
+      <div className="mb-8">
+        <Link href="/" className="text-gray-500 hover:text-gray-300 text-sm transition-colors mb-4 inline-block">
+          ← All Topics
+        </Link>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">{topicTitle}</h1>
+            <p className="text-gray-400 text-sm">
+              {topicMeta} · {concepts.length} concepts
+            </p>
+          </div>
+          <DepthFilter
+            active={depth}
+            onChange={setDepth}
+            showTraps={showTraps}
+            onToggleTraps={() => setShowTraps((v) => !v)}
+            lastHourMode={lastHourMode}
+            onToggleLastHour={() => setLastHourMode((v) => !v)}
+          />
+        </div>
+      </div>
+
+      {/* ── Last 1 Hour Compressed Cheatsheet ──────────────────────────── */}
+      {lastHourMode && (
+        <div className="mb-8 space-y-4">
+          <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-indigo-400 text-lg">⏱</span>
+              <h2 className="text-indigo-300 font-semibold text-base">
+                Last 1 Hour — Compressed Cheatsheet
+              </h2>
+              <span className="ml-auto text-xs text-indigo-500 font-medium">
+                {lastHourConceptIds.length} concepts · scan in 5 min
+              </span>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-5">
+              {/* Key Takeaways */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2">
+                  Key Takeaways
+                </h3>
+                <ul className="space-y-1.5">
+                  {lastHourSummary.keyTakeaways.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-gray-300 text-sm">
+                      <span className="text-indigo-500 shrink-0 mt-0.5 font-bold">{i + 1}.</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Must-Know One-Liners */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2">
+                  Must-Know One-Liners
+                </h3>
+                <div className="space-y-2">
+                  {lastHourSummary.mustKnowConcepts.map((item, i) => (
+                    <div key={i} className="bg-gray-900/60 rounded-lg px-3 py-2">
+                      <div className="text-white text-xs font-semibold mb-0.5">{item.name}</div>
+                      <div className="text-gray-400 text-xs leading-relaxed">{item.oneLiner}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top Traps */}
+              <div>
+                <h3 className="text-xs uppercase tracking-wider text-orange-400 font-semibold mb-2">
+                  ⚠ Top Traps to Avoid
+                </h3>
+                <ul className="space-y-1.5">
+                  {lastHourSummary.topTraps.map((trap, i) => (
+                    <li key={i} className="flex items-start gap-2 text-orange-200 text-sm">
+                      <span className="text-orange-400 shrink-0 mt-0.5">•</span>
+                      {trap}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile nav — outside flex so it doesn't push content */}
+      <div className="md:hidden mb-6">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {sections.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveSection(id)}
+              className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                activeSection === id
+                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                  : "text-gray-500 border border-gray-800 hover:text-gray-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-8">
+        {/* Sidebar — desktop */}
+        <nav className="hidden md:flex flex-col gap-1 w-44 shrink-0 sticky top-8 self-start">
+          {sections.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveSection(id)}
+              className={`text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeSection === id
+                  ? "bg-indigo-600/20 text-indigo-300"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0 space-y-6">
+
+          {/* ── Mental Model ──────────────────────────────────────────── */}
+          {activeSection === "mental-model" && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-white">🧠 Mental Model</h2>
+
+              {/* Core mental model card */}
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
+                <div>
+                  <h4 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">What it is</h4>
+                  <p className="text-gray-300 text-sm leading-relaxed">{mentalModel.whatItIs}</p>
+                </div>
+                <div>
+                  <h4 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Why it exists</h4>
+                  <p className="text-gray-300 text-sm leading-relaxed">{mentalModel.whyItExists}</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">When to use</h4>
+                    <ul className="space-y-2">
+                      {mentalModel.whenToUse.map((item) => (
+                        <li key={item} className="flex items-start gap-2 text-gray-300 text-sm">
+                          <span className="text-green-500 mt-0.5 shrink-0">✓</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3">Where it fails</h4>
+                    <ul className="space-y-2">
+                      {mentalModel.whereItFails.map((item) => (
+                        <li key={item} className="flex items-start gap-2 text-gray-300 text-sm">
+                          <span className="text-red-500 mt-0.5 shrink-0">✗</span> {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Category overview cards */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Topic Areas</h3>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {categories.map((cat) => {
+                    const count = concepts.filter((c) => c.category === cat.id).length;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setActiveSection("core-concepts")}
+                        className="text-left bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-xl p-4 transition-all group"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-gray-200 font-medium text-sm group-hover:text-white transition-colors">
+                            {cat.label}
+                          </span>
+                          <span className="text-gray-600 text-xs">{count} concepts</span>
+                        </div>
+                        <p className="text-gray-500 text-xs leading-relaxed">{cat.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Knowledge Tree (visual diagram) ────────────────────── */}
+          {activeSection === "knowledge-tree" && (
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-1">🌳 Knowledge Tree</h2>
+                <p className="text-gray-500 text-sm">
+                  Visual map of every concept organized by category. Click any node to jump to its deep-dive.
+                </p>
+              </div>
+              <KnowledgeTreeVisual
+                tree={mentalModelTree}
+                onConceptSelect={handleConceptSelect}
+                activeConceptId={activeConceptId}
+              />
+            </div>
+          )}
+
+          {/* ── Core Concepts ─────────────────────────────────────────── */}
+          {activeSection === "core-concepts" && (
+            <div className="space-y-10">
+              <h2 className="text-xl font-semibold text-white">⚙️ Core Concepts</h2>
+              {lastHourMode && (
+                <p className="text-indigo-400 text-sm -mt-4">
+                  ⏱ Showing {visibleConcepts.length} highest-signal concepts only.
+                </p>
+              )}
+              {categories.map((cat) => {
+                const catConcepts = visibleConcepts.filter((c) => c.category === cat.id);
+                if (catConcepts.length === 0) return null;
+                return (
+                  <div key={cat.id} className="space-y-4">
+                    <div className="border-b border-gray-800 pb-3">
+                      <h3 className="text-base font-semibold text-gray-200">{cat.label}</h3>
+                      <p className="text-gray-600 text-xs mt-0.5">{cat.description}</p>
+                    </div>
+                    {catConcepts.map((concept) => (
+                      <ConceptCard
+                        key={concept.id}
+                        concept={concept}
+                        activeDepth={depth}
+                        showTraps={showTraps}
+                        highlighted={concept.id === activeConceptId}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ── Interview Patterns ────────────────────────────────────── */}
+          {activeSection === "interview-patterns" && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-white">💡 Interview Patterns</h2>
+              {interviewPatterns.map((pattern, i) => (
+                <div key={i} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+                  <p className="text-white font-medium">{pattern.question}</p>
+                  <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-lg p-4">
+                    <div className="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2">🎤 Answer</div>
+                    <p className="text-indigo-200 text-sm leading-relaxed">{pattern.answer}</p>
+                  </div>
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2">🧠 Why Asked</div>
+                    <p className="text-gray-300 text-sm leading-relaxed">{pattern.whyAsked}</p>
+                  </div>
+                  {showTraps && (
+                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
+                      <div className="text-xs uppercase tracking-wider text-orange-400 font-semibold mb-2">⚠ Trap</div>
+                      <p className="text-orange-200 text-sm leading-relaxed">{pattern.trap}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Common Mistakes ───────────────────────────────────────── */}
+          {activeSection === "common-mistakes" && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold text-white">⚠️ Common Mistakes</h2>
+              <div className="bg-gray-900 border border-gray-800 rounded-xl divide-y divide-gray-800">
+                {commonMistakes.map((mistake, i) => (
+                  <div key={i} className="p-5 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="text-red-500 mt-0.5 shrink-0">✗</span>
+                      <p className="text-red-300 text-sm line-through">{mistake.wrong}</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5 shrink-0">✓</span>
+                      <p className="text-green-300 text-sm">{mistake.correct}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Practice ─────────────────────────────────────────────── */}
+          {activeSection === "practice" && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-1">🧪 Practice</h2>
+                <p className="text-gray-500 text-sm">
+                  Read the scenario, think through your answer, then reveal.
+                </p>
+              </div>
+              {practiceQuestions.map((q, i) => (
+                <PracticeCard key={i} item={q} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
