@@ -195,6 +195,8 @@ export const concepts: Concept[] = [
       "Containers use two Linux kernel primitives: namespaces for isolation and cgroups for resource limits. Namespaces make a process think it's alone — it has its own PIDs, network interfaces, filesystem mounts, and hostname. cgroups enforce hard limits on CPU, memory, and I/O. The container shares the host kernel — there's no hypervisor. This is why containers start in milliseconds vs seconds for VMs, and why a container escape is a kernel vulnerability.",
     trap:
       "Containers are NOT VMs. They share the host kernel. A container running Linux on a Windows Docker Desktop is running inside a lightweight Linux VM that Docker Desktop manages — the container itself still uses that VM's kernel.",
+    memoryAnchor:
+      "Namespaces = blindfolds (can't SEE other processes). cgroups = handcuffs (can't USE more than your share). A container is a blindfolded, handcuffed process — still in the same building (kernel).",
   },
   {
     id: "container-vs-vm",
@@ -210,6 +212,8 @@ export const concepts: Concept[] = [
       "VMs virtualize hardware — each VM has its own OS, kernel, and a hypervisor managing hardware access. Containers virtualize the OS — they share the host kernel but have isolated namespaces. This makes containers ~10x faster to start, ~10x smaller on disk, and much denser to pack. The trade-off is isolation: a kernel exploit can escape a container but not a VM. For untrusted multi-tenant workloads, VMs win on security. For microservices and CI/CD, containers win on efficiency.",
     trap:
       "Containers don't provide the same security isolation as VMs. Running untrusted code in a container on a shared host is risky — use dedicated nodes, gVisor, or Kata Containers for that use case.",
+    memoryAnchor:
+      "VM = separate houses with own foundations (kernel). Container = apartments in one building sharing plumbing (kernel). Cheaper and faster to build apartments, but a fire in the walls spreads to everyone.",
   },
   {
     id: "oci-runtime",
@@ -225,6 +229,8 @@ export const concepts: Concept[] = [
       "OCI standardizes how container images are built and how runtimes run them — so an image built with Docker runs on containerd, podman, or any OCI-compliant runtime. containerd is the runtime Kubernetes uses today (Docker's runtime, donated to CNCF). runc is the low-level OCI runtime that actually makes the syscalls to create namespaces and cgroups. Knowing this matters because Kubernetes 1.24 removed dockershim — clusters now talk directly to containerd via CRI.",
     trap:
       "Docker and containerd are not the same. Docker is a developer UX tool (CLI, build, compose). containerd is the runtime that actually manages containers. In production Kubernetes clusters, Docker the tool is often not installed at all.",
+    memoryAnchor:
+      "OCI = the universal power outlet standard. containerd = the electrician who wires everything. runc = the actual outlet that delivers current. Docker = the fancy smart-home app you use to flip switches.",
   },
 
   // ── Docker Images & Builds ────────────────────────────────────────────────────
@@ -242,6 +248,8 @@ export const concepts: Concept[] = [
       "Every RUN, COPY, ADD creates an immutable layer identified by its SHA256 hash. Layers are reused across images and cached during builds. The container adds a writable layer on top using overlayfs copy-on-write. The critical implication: apt-get install in one RUN, apt-get clean in the next RUN does NOT reduce image size — the installed bytes live in layer N, the deletion is a whiteout in layer N+1. Combine them: RUN apt-get update && apt-get install -y pkg && rm -rf /var/lib/apt/lists/*",
     trap:
       "apt-get clean in a separate RUN layer does NOT shrink the image. Layers are immutable and additive — deletion only adds a whiteout marker. Use single RUN instructions or multi-stage builds to keep images small.",
+    memoryAnchor:
+      "Layers are like stacking transparent sheets. Each RUN = a new sheet. You can draw on a new sheet but never erase a previous one. 'Deleting' just puts a sticky note saying 'ignore this' — the old drawing is still there taking up space.",
   },
   {
     id: "build-cache",
@@ -257,6 +265,8 @@ export const concepts: Concept[] = [
       "Docker's build cache is layer-by-layer and invalidates from the first changed layer downward. The key optimization: put slow, rarely-changing steps first (install dependencies) and fast, frequently-changing steps last (copy source code). Always create a .dockerignore to exclude node_modules, .git, and build artifacts from the build context. With BuildKit, use --mount=type=cache for package manager caches — npm, pip, apt — to get near-instant installs on rebuilds.",
     trap:
       "RUN apt-get update should always be combined with apt-get install in one layer. If they're separate, the update result is cached and stale — future builds skip the update but run install against old package lists, potentially installing outdated versions.",
+    memoryAnchor:
+      "Build cache = a chef who skips steps if the recipe hasn't changed. 'COPY package.json first' = handing the chef the ingredient list early. Only when ingredients change does the chef re-shop. Source code changes? Chef already has groceries cached.",
   },
   {
     id: "multi-stage-builds",
@@ -272,6 +282,8 @@ export const concepts: Concept[] = [
       "Multi-stage builds let you use a fat build environment (Go SDK, JDK, Node with build tools) and produce a minimal runtime image. COPY --from=builder copies only what you need — the compiled binary, built assets. The shipped image has no compiler, no npm, no secrets used during build. I use FROM gcr.io/distroless/static for Go binaries — the final image is ~5MB with no shell or OS utilities, which dramatically reduces CVE exposure.",
     trap:
       "Build-time secrets (API keys, SSH keys) passed as ARG or ENV are baked into the layer — even if you delete them in a later step. Use BuildKit secret mounts: RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret. These never appear in any layer.",
+    memoryAnchor:
+      "Multi-stage = cooking in a messy kitchen, then plating only the finished dish in a clean restaurant. Guests (production) never see the dirty pots, flour everywhere, or secret recipe notes — only the final plate.",
   },
 
   // ── Docker Runtime ────────────────────────────────────────────────────────────
@@ -289,6 +301,8 @@ export const concepts: Concept[] = [
       "Docker containers get their own network namespace with a virtual eth0. The bridge driver connects containers to a virtual bridge on the host with NAT for outbound traffic. Port publishing (-p) adds iptables DNAT rules. User-defined bridge networks get automatic DNS resolution by container name — always use these instead of the default bridge. The host driver gives the container direct access to the host's network stack — no NAT overhead, useful for performance-critical services.",
     trap:
       "The default bridge network does NOT support container name DNS resolution. Two containers on the default bridge network can't reach each other by name — only by IP. Always create user-defined bridge networks for multi-container apps.",
+    memoryAnchor:
+      "Bridge network = a private office floor with an internal phone directory. Containers are offices on the same floor — they call each other by name. Host network = tearing down the office walls and sitting directly in the lobby.",
   },
   {
     id: "docker-volumes",
@@ -304,6 +318,8 @@ export const concepts: Concept[] = [
       "Container storage is ephemeral — it dies with the container. Volumes are Docker-managed directories outside the container filesystem, persisted across container restarts and removals. Bind mounts map a specific host path. For local dev, bind mounts are great for hot reload. For production, use named volumes or — in Kubernetes — PersistentVolumeClaims. Never use bind mounts in production containers unless you explicitly need host access.",
     trap:
       "Removing a container with docker rm does NOT remove its volumes. Volumes persist until explicitly removed with docker volume rm or docker volume prune. Use docker rm -v to remove the container and its anonymous volumes together.",
+    memoryAnchor:
+      "Container storage = writing on a whiteboard (wiped when you leave the room). Volume = a filing cabinet in the hallway (survives room demolition). Bind mount = bringing your own folder from home into the office.",
   },
   {
     id: "docker-compose",
@@ -319,6 +335,8 @@ export const concepts: Concept[] = [
       "Docker Compose is the standard tool for local multi-service development. One YAML file defines all services, their images, env vars, ports, volumes, and network relationships. Services discover each other by service name on the default Compose network. The critical depends_on gotcha: it controls startup order but not readiness. Use depends_on with condition: service_healthy and a healthcheck to properly wait for databases and message queues to be ready before starting dependent services.",
     trap:
       "depends_on alone does NOT wait for a service to be ready — only for the container to start. A web service starting before its database is healthy will crash. Use condition: service_healthy with a proper healthcheck, or implement retry logic in your application startup.",
+    memoryAnchor:
+      "Compose = a band conductor's sheet music. One YAML file says 'drums start, then bass, then guitar.' But depends_on is like saying 'guitar after drums' — it waits for the drummer to SIT DOWN, not to actually be PLAYING. Use healthchecks to wait for the beat.",
   },
 
   // ── Kubernetes Architecture ───────────────────────────────────────────────────
@@ -336,6 +354,8 @@ export const concepts: Concept[] = [
       "The control plane has four main components: (1) API server — the only component that talks to etcd, validates all requests; (2) etcd — the distributed store holding all cluster state; (3) scheduler — watches for unscheduled pods, picks nodes based on resources, affinity, taints; (4) controller manager — runs reconciliation loops for all built-in resources. The API server is the central hub — all other components and kubelets communicate through it. If etcd loses quorum, the cluster can still serve existing workloads but can't accept changes.",
     trap:
       "The control plane doesn't run workloads by default (master nodes are tainted). Losing etcd doesn't immediately kill running pods — kubelet manages pods locally. But you can't create, update, or delete anything until the control plane recovers.",
+    memoryAnchor:
+      "Control plane = airport control tower. API server = the single radio frequency everyone talks on. etcd = the flight log book. Scheduler = the gate agent assigning planes to runways. Controller manager = the crew making sure every flight matches the schedule board.",
   },
   {
     id: "node-components",
@@ -351,6 +371,8 @@ export const concepts: Concept[] = [
       "Every node has three things: kubelet (talks to API server, manages pod lifecycle, reports health), kube-proxy (maintains iptables/IPVS rules for Service routing), and a container runtime (containerd). kubelet is the most critical — it's the local agent that actually starts and stops containers based on what the API server says. kube-proxy translates Service IPs into pod IPs. For large clusters, replace kube-proxy with Cilium (eBPF) for better scalability.",
     trap:
       "kube-proxy doesn't proxy traffic — it just sets up iptables rules that the kernel uses. The word 'proxy' is misleading. Traffic goes directly from client to pod — not through kube-proxy. kube-proxy just programs the routing.",
+    memoryAnchor:
+      "kubelet = the on-site foreman at each construction site (node), taking orders from HQ (API server) and managing the workers (containers). kube-proxy = the guy who paints road signs — doesn't direct traffic himself, just sets up the signs so cars (packets) know where to go.",
   },
   {
     id: "reconciliation-loop",
@@ -366,6 +388,8 @@ export const concepts: Concept[] = [
       "Kubernetes is declarative — you tell it what you want, not how to do it. Controllers run infinite reconcile loops: read desired state from spec, read actual state, compute the diff, take action. This makes the system self-healing: if a pod crashes, the ReplicaSet controller sees 'desired=3, actual=2' and creates a new pod. This model means you can safely apply the same YAML repeatedly — it converges, not accumulates.",
     trap:
       "kubectl apply is not a one-time command — it's a declaration. If the current state differs from the desired (because someone manually changed something), the next apply will correct it. This is why direct kubectl edit in production is dangerous — the next apply overwrites it.",
+    memoryAnchor:
+      "Reconciliation = a thermostat. You declare 72 degrees (desired state). The thermostat constantly checks: too cold? Heat. Too hot? Cool. It doesn't remember what it did last — it just reads the thermometer and acts. Kubernetes is a thermostat for infrastructure.",
   },
 
   // ── Workloads ────────────────────────────────────────────────────────────────
@@ -383,6 +407,8 @@ export const concepts: Concept[] = [
       "A pod is a group of containers that share a network and storage. They communicate via localhost — no service discovery needed within a pod. The pod gets one IP. Sidecars are a critical pattern: service meshes (Istio, Linkerd) inject a proxy sidecar into every pod to handle TLS, retries, and observability without changing your app code. Always use a controller (Deployment, StatefulSet) to manage pods — naked pods don't get rescheduled if their node fails.",
     trap:
       "Pods are ephemeral. When a pod is deleted or evicted, it's gone — a new pod with a new IP is created. Never hard-code pod IPs. Always use Services (stable virtual IPs with DNS) to reach pods.",
+    memoryAnchor:
+      "Pod = a lunch table. Containers in the same pod are coworkers sharing one table — same IP (table number), same food (volumes), talking over lunch (localhost). But the table is disposable: if someone spills coffee, you get a NEW table, not a cleaned one.",
   },
   {
     id: "deployment",
@@ -398,6 +424,8 @@ export const concepts: Concept[] = [
       "A Deployment is what you use for stateless apps. It manages ReplicaSets which manage pods. Rolling updates create a new ReplicaSet and gradually shift traffic from old to new — zero downtime. maxSurge and maxUnavailable control the speed. For rollback: kubectl rollout undo deployment/name. The history of ReplicaSets is kept so you can roll back to any previous version. Key: set readiness probes — rolling updates only proceed when new pods pass their readiness check. A bad deployment with no readiness probe will happily roll out broken pods.",
     trap:
       "A Deployment rollback undoes the pod template change — it does NOT rollback your application's database migrations or any external state changes. Rollbacks are partial — only the container image and pod spec revert.",
+    memoryAnchor:
+      "Deployment = a rolling restaurant shift change. New waiters (pods) arrive one by one, old waiters leave as new ones prove they can carry plates (readiness). maxSurge = how many extra waiters on the floor at once. Rollback = calling the old crew back in.",
   },
   {
     id: "statefulset",
@@ -413,6 +441,8 @@ export const concepts: Concept[] = [
       "StatefulSets are for apps that need persistent identity — databases, message queues. Each pod gets a sticky name (app-0, app-1), a stable DNS hostname, and a dedicated PVC that survives pod restarts. This is how Kafka knows which broker is which across restarts. The key difference from Deployment: pods are NOT interchangeable. app-0 is always app-0 with its own data. PVCs are NOT auto-deleted when you scale down — you must clean them up manually.",
     trap:
       "Deleting a StatefulSet does NOT delete its PVCs — data is retained deliberately. You'll accumulate orphaned PVCs with their storage costs if you don't clean them up after deleting a StatefulSet.",
+    memoryAnchor:
+      "StatefulSet = assigned seating at a wedding. Each guest (pod) has a name card (app-0, app-1), a personal locker (PVC), and a reserved parking spot (stable DNS). Deployment guests are interchangeable — sit anywhere. StatefulSet guests are VIPs with permanent reservations.",
   },
   {
     id: "daemonset-job",
@@ -428,6 +458,8 @@ export const concepts: Concept[] = [
       "DaemonSet is for infrastructure agents — you need exactly one per node for things like log collection, metrics scraping, or CNI. Job is for finite tasks — database migrations, report generation. CronJob wraps a Job with a cron schedule. Key CronJob gotcha: if the cluster is down during a scheduled time, it catches up based on startingDeadlineSeconds — you may get multiple jobs running at once unless you set concurrencyPolicy: Forbid.",
     trap:
       "Completed Job pods are NOT automatically deleted. They remain in Completed state until the Job's TTL (ttlSecondsAfterFinished) or manual cleanup. Without TTL cleanup, completed pods accumulate and hit cluster object limits.",
+    memoryAnchor:
+      "DaemonSet = placing one security guard on every floor of a building (one per node). Job = hiring a temp worker to move boxes, then they leave. CronJob = the cleaning crew that shows up every Tuesday at 9 PM on a schedule.",
   },
 
   // ── Kubernetes Networking ─────────────────────────────────────────────────────
@@ -445,6 +477,8 @@ export const concepts: Concept[] = [
       "Services give pods a stable identity. Pods are ephemeral with changing IPs — Services are stable. ClusterIP for internal service-to-service. NodePort/LoadBalancer for external traffic. The service selector uses labels — any pod with matching labels becomes an endpoint. The kube-proxy on each node programs iptables rules so traffic to the ClusterIP gets load-balanced to pod IPs. Services are the DNS record + stable VIP layer on top of ephemeral pods.",
     trap:
       "A Service doesn't automatically wait for pods to be ready. If a pod is in the Endpoints list but its readiness probe is failing, traffic still won't reach it — but only if you've defined a readiness probe. Without readiness probes, traffic goes to pods immediately on start, before they're ready.",
+    memoryAnchor:
+      "Service = a restaurant's phone number that never changes, even when chefs (pods) quit and new ones are hired. ClusterIP = the internal kitchen extension. NodePort = a side door. LoadBalancer = the valet entrance. The phone number (DNS) always works.",
   },
   {
     id: "ingress",
@@ -460,6 +494,8 @@ export const concepts: Concept[] = [
       "Ingress decouples routing rules from infrastructure — you define host/path routing in YAML, the Ingress Controller implements it in nginx/envoy/ALB. This lets you have hundreds of services behind one cloud load balancer instead of one LB per service. TLS is handled at the Ingress Controller — your backend services speak plain HTTP. Cert-manager + Ingress is the standard for automated Let's Encrypt certificates. For production, use nginx-ingress or the cloud-native controller (ALB, GCE).",
     trap:
       "Creating an Ingress resource without an Ingress Controller installed does nothing — the resource exists but no routing is configured. This is a common source of confusion when setting up a new cluster.",
+    memoryAnchor:
+      "Ingress = the hotel front desk that routes guests to rooms. 'api.example.com/v1' goes to Room 101 (service A), '/v2' goes to Room 202 (service B). Without an Ingress Controller, the front desk is just an empty counter with no receptionist.",
   },
   {
     id: "network-policy-dns",
@@ -475,6 +511,8 @@ export const concepts: Concept[] = [
       "NetworkPolicy is Kubernetes' microsegmentation — you can restrict which pods talk to which, down to port level. By default there are no restrictions. To implement least-privilege: (1) apply a default-deny policy to the namespace, (2) explicitly allow needed traffic. Important: NetworkPolicy only works if your CNI supports it — Calico or Cilium are the standard choices. DNS is provided by CoreDNS — services are reachable by short name within the same namespace, or fully-qualified name across namespaces.",
     trap:
       "NetworkPolicy is NOT a firewall for all cluster traffic — it only applies to pod-to-pod and pod-to-service traffic. Traffic from outside the cluster (via Ingress/NodePort) is not controlled by NetworkPolicy directly. Also, NetworkPolicy does nothing if the CNI doesn't support it — installing policies on a Flannel cluster has no effect.",
+    memoryAnchor:
+      "NetworkPolicy = velvet ropes at a club. By default, no ropes (everyone talks to everyone). Adding a policy = putting up ropes and a bouncer who checks your label-badge. CoreDNS = the club's intercom system — 'service-name, you have a visitor at the front.'",
   },
 
   // ── Storage & Config ──────────────────────────────────────────────────────────
@@ -492,6 +530,8 @@ export const concepts: Concept[] = [
       "PVCs are how applications request storage without knowing the backend. The separation of PV (infrastructure concern) from PVC (application concern) is intentional — developers write PVCs, admins or StorageClasses handle PVs. In cloud environments, use a StorageClass with dynamic provisioning — EBS for AWS, PD for GCP. Use WaitForFirstConsumer binding mode to ensure the PV lands in the same availability zone as the pod. For databases, ReadWriteOnce with a block storage PV is the standard — it gives performance comparable to a local disk.",
     trap:
       "ReadWriteOnce means one node, not one pod. Multiple pods on the same node can mount an RWO volume simultaneously. For single-pod exclusivity, use ReadWriteOncePod (K8s 1.22+). Also, scaling a StatefulSet down does NOT release PVCs — they remain bound and billing continues.",
+    memoryAnchor:
+      "PV = a storage unit at a facility. PVC = a rental agreement ('I need 10GB, read-write'). StorageClass = the facility manager who auto-assigns units. You sign the agreement (PVC), the manager (StorageClass) finds or builds you a unit (PV).",
   },
   {
     id: "configmap-secret",
@@ -507,6 +547,8 @@ export const concepts: Concept[] = [
       "ConfigMaps for config, Secrets for credentials — that's the split. Both mount as files or env vars. Critical security point: Secrets are only base64 encoded in etcd by default — readable by anyone with etcd access. Enable encryption at rest, or better, use external-secrets operator to pull from AWS Secrets Manager or Vault. For rotating credentials without pod restarts, use volume-mounted Secrets — they update automatically. For database passwords, the modern approach is workload identity + IAM roles, eliminating static secrets entirely.",
     trap:
       "base64 is NOT encryption. It's encoding. Anyone who can kubectl get secret -o yaml can read every value in 2 seconds. Treat RBAC access to Secrets as access to plaintext credentials. Use namespace-scoped Roles to restrict secret access to only the pods that need it.",
+    memoryAnchor:
+      "ConfigMap = a sticky note on the fridge ('DB_HOST=postgres'). Secret = the same sticky note but written in pig latin — base64 is NOT a lock, it's just backwards writing anyone can read. You need Vault or encryption at rest for an actual safe.",
   },
 
   // ── Scheduling & Security ─────────────────────────────────────────────────────
@@ -524,6 +566,8 @@ export const concepts: Concept[] = [
       "Always set resource requests and limits. Requests tell the scheduler how much capacity to reserve — no requests means BestEffort QoS and first-evicted under pressure. Limits prevent runaway processes from starving neighbors. CPU limits cause throttling (process slows), memory limits cause OOMKill (process dies). A common production issue: tight CPU limits cause request latency spikes even when CPUs are underutilized — because the cgroup throttles the container mid-request. Set CPU limits conservatively or leave them unset for latency-sensitive services.",
     trap:
       "CPU limits cause throttling, not kills. A container repeatedly hitting its CPU limit will show high CPU throttle % in metrics but not OOMKill. This is a silent performance issue — the pod stays Running but responds slowly. Monitor cpu_throttled_seconds_total.",
+    memoryAnchor:
+      "Requests = your reserved table at a restaurant (guaranteed). Limits = the buffet plate size. CPU limit = small plate (you eat slower but survive). Memory limit = the bouncer at the door (exceed it and you get THROWN OUT — OOMKilled). CPU throttles, memory kills.",
   },
   {
     id: "affinity-taints",
@@ -539,6 +583,8 @@ export const concepts: Concept[] = [
       "Taints + tolerations are for restricting which pods CAN run on a node — dedicated GPU nodes, Windows nodes, spot instances. Affinity is for expressing preferences — keep frontend pods away from database pods (anti-affinity), or co-locate cache with app (affinity). For spreading pods across availability zones for HA, use topologySpreadConstraints — it's more ergonomic than podAntiAffinity and handles scaling gracefully. Control plane nodes are tainted node-role.kubernetes.io/control-plane:NoSchedule by default.",
     trap:
       "podAntiAffinity with requiredDuringSchedulingIgnoredDuringExecution can make a Deployment unschedulable. If you require each pod on a different node but have more replicas than nodes, the scheduler can't place all pods. Use preferredDuringScheduling or topologySpreadConstraints with ScheduleAnyway to handle this gracefully.",
+    memoryAnchor:
+      "Taints = 'WET PAINT' signs on park benches (nodes). Only pods with tolerations (rain jackets) can sit there. Affinity = 'I want to sit NEAR the playground.' Anti-affinity = 'Keep me AWAY from that noisy kid.' topologySpreadConstraints = 'Spread kids evenly across all playgrounds.'",
   },
   {
     id: "rbac",
@@ -554,6 +600,8 @@ export const concepts: Concept[] = [
       "RBAC is Kubernetes' authorization layer. You define what a ServiceAccount (or user) can do via Role + RoleBinding. Always create dedicated ServiceAccounts per workload with minimal permissions — don't use the default ServiceAccount. For cross-namespace access, use ClusterRole + RoleBinding scoped to the target namespace. For cloud resource access from pods, use workload identity (IRSA on EKS) rather than static credentials. Audit RBAC regularly — overly permissive roles are the most common K8s security misconfiguration.",
     trap:
       "Mounting the default ServiceAccount token gives the pod access to the Kubernetes API with the default SA's permissions — which is often more than needed. Set automountServiceAccountToken: false on pods that don't need API access, and use dedicated minimal-permission SAs for those that do.",
+    memoryAnchor:
+      "RBAC = a building keycard system. Role = 'this card opens doors 1-5.' RoleBinding = 'give this card to Alice.' ClusterRole = 'master key for ALL floors.' The default ServiceAccount is like giving every new employee the janitor's master key — always issue specific keycards instead.",
   },
   {
     id: "probes",
@@ -569,6 +617,8 @@ export const concepts: Concept[] = [
       "Liveness and readiness serve different purposes. Liveness restarts containers that are stuck — infinite loop, deadlock, corrupted internal state. Readiness controls traffic — remove the pod from load balancing while it's initializing, warming up caches, or temporarily degraded. Always define both. For readiness, check actual dependencies — can the app reach its database? Startup probe prevents liveness from killing a slow-starting container during initial boot. PodDisruptionBudget ensures rolling updates and node drains don't take all your pods offline at once.",
     trap:
       "A failing liveness probe that also makes readiness fail will cause a restart loop — pod gets removed from endpoints, restarts, removed again, restarts. This amplifies an outage. Keep liveness checks lightweight and infrastructure-only (is the process alive?). Put business logic checks in readiness probes only.",
+    memoryAnchor:
+      "Liveness = poking someone to check if they're ALIVE ('hey, are you breathing?'). If not, call 911 (restart). Readiness = asking 'are you READY to work?' If not, don't send them customers, but don't kill them either. Startup probe = 'still getting dressed? I won't poke you yet.'",
   },
 ];
 

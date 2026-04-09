@@ -237,6 +237,8 @@ const concepts: Concept[] = [
       "I state Big O for both time and space upfront. I drop constants and lower-order terms, keep the dominant term, and clarify worst vs average when it matters — for example, quicksort is O(n²) worst case but O(n log n) expected. For hash map operations I say 'amortized O(1)' not just 'O(1)' to be precise. I also think about N's practical size — sometimes an O(n log n) algorithm with better cache behavior beats an O(n) algorithm with many cache misses in practice.",
     trap:
       "O(2n) and O(n) are the same — you CANNOT compare algorithms by their Big O class alone when constants differ significantly. Also: nested loops are not always O(n²); if the inner loop runs a fixed number of times, the whole thing is still O(n).",
+    memoryAnchor:
+      "Big O is like rating restaurants by stars (1-5) not exact scores. A 4.1 and a 4.9 are both '4-star' — you drop the decimals (constants) and only care about the star tier (dominant term).",
   },
   {
     id: "time-vs-space",
@@ -252,6 +254,8 @@ const concepts: Concept[] = [
       "I always state both time and space complexity. When proposing an optimization, I explicitly call out the trade-off: 'I can reduce this from O(n²) time to O(n) by using an O(n) hash map.' Interviewers appreciate knowing you understand the cost. I also mention auxiliary space vs total space — in-place algorithms use O(1) auxiliary space but the input itself might be O(n).",
     trap:
       "Recursive solutions are NOT free on space. A recursive DFS on a skewed binary tree uses O(n) stack space, which can cause a stack overflow for large inputs. Always mention this and offer to convert to iterative with an explicit stack.",
+    memoryAnchor:
+      "Time vs Space is like packing for a trip: bring a GPS (extra luggage = space) and you save hours of asking for directions (time). Carry nothing and you'll wander forever.",
   },
   {
     id: "amortized",
@@ -267,6 +271,8 @@ const concepts: Concept[] = [
       "When I say 'O(1) amortized' — like for array append or hash insert — I mean the average cost per operation over any sequence of operations is O(1), even if individual operations can be costly. The classic example is dynamic arrays: doubling the capacity means the total copy work is bounded by 2n over n appends, so amortized O(1) per append. I'd contrast this with 'worst case O(1)' which would mean every single call is O(1).",
     trap:
       "Amortized O(1) does NOT mean every operation is O(1). Calling clear() on a Python list and then doing n appends gives you one O(n) resize during that sequence. If your use case has adversarial access patterns hitting the expensive case repeatedly, amortized analysis doesn't apply.",
+    memoryAnchor:
+      "Amortized = paying rent. You pay one big security deposit (resize) then cheap monthly rent (appends). Averaged out, each month costs almost nothing. One expensive day doesn't mean every day is expensive.",
   },
 
   // ── Arrays & Strings ─────────────────────────────────────────────────────────
@@ -284,6 +290,8 @@ const concepts: Concept[] = [
       "Two pointers turn O(n²) into O(n) by leveraging a monotonic property — usually that the array is sorted or that moving a pointer in one direction monotonically changes the quantity you care about. I'd reach for two pointers when the problem involves pairs or subarrays in a sorted structure, or when I need to modify an array in-place (e.g., remove duplicates). The critical step is proving why I can safely eliminate all arrangements that include the current pointer position when I decide to advance.",
     trap:
       "Opposite-end two pointers require a sorted array or equivalent monotonic property. Applying them to an unsorted array without justification is incorrect. Also: when fixing elements for three-sum, remember to skip duplicates to avoid duplicate triplets in the output.",
+    memoryAnchor:
+      "Two pointers = two people searching a hallway from opposite ends. They walk toward each other, checking every door. They never backtrack, so they cover the whole hallway in one pass.",
   },
   {
     id: "sliding-window",
@@ -299,6 +307,8 @@ const concepts: Concept[] = [
       "Sliding window is my default for 'longest/shortest subarray/substring satisfying property X'. The template is: expand right to try to satisfy the constraint, shrink left when it's violated, and update the answer at each valid state. The O(n) argument is that each pointer moves at most n times. The subtle part is maintaining the window state incrementally — for character frequency, I use a hash map and a 'have/need' counter to avoid recomputing each time.",
     trap:
       "When shrinking the window from the left, you must correctly remove the element leaving the window from your state. Forgetting to decrement a counter or update a sum when left pointer advances is the most common bug. Also: the window boundaries are [left, right] inclusive — be consistent or you'll have off-by-one errors.",
+    memoryAnchor:
+      "Sliding window = a caterpillar inching forward. The head stretches right to eat more, the tail contracts left when the body gets too long. The caterpillar never goes backward.",
   },
   {
     id: "prefix-sum",
@@ -314,6 +324,8 @@ const concepts: Concept[] = [
       "Prefix sums transform range-query problems from O(n) per query to O(1) after O(n) preprocessing. For 'count subarrays with sum k', I maintain a running prefix sum and a hash map of how many times each prefix sum has appeared. At each index j, I need the count of i where prefix[j] - prefix[i] = k, so I look up prefix[j] - k. I always initialize the map with {0: 1} — that handles the case where a subarray starting from index 0 has sum k.",
     trap:
       "The prefix sum array is size n+1, not n. prefix[0] = 0 is the sentinel. Forgetting this causes off-by-one errors on the first element. In 2D prefix sums, the inclusion-exclusion formula must subtract the overlap exactly once: forget the subtraction and you double-count.",
+    memoryAnchor:
+      "Prefix sum = a running odometer. To find the distance between mile markers 3 and 7, just subtract: odometer[7] - odometer[3]. No need to re-drive the road.",
   },
   {
     id: "binary-search",
@@ -329,6 +341,8 @@ const concepts: Concept[] = [
       "I reach for binary search in three scenarios: (1) searching a sorted array for a target or boundary; (2) binary searching on the answer space when I can check a condition in O(n) and the answer space is monotonic; (3) finding the rotation point or peak in a rotated/mountain array. For left/right boundaries I use a variant where I never return from inside the loop — just narrow until lo == hi. I always verify with a 2-element array to check my termination condition.",
     trap:
       "Using lo <= hi for boundary search causes infinite loops when lo = hi and the condition sets hi = mid (since mid = lo = hi). Use lo < hi for boundary searches. The classic off-by-one: if you set hi = mid-1 when you should set hi = mid, you skip the answer. Always mentally trace a 2-element and 1-element case.",
+    memoryAnchor:
+      "Binary search = the 'guess the number' game. 'Higher or lower?' Rip the phone book in half each time. You never re-read pages you already eliminated.",
   },
   {
     id: "rolling-hash",
@@ -344,6 +358,8 @@ const concepts: Concept[] = [
       "Rolling hash is my go-to for fixed-window substring search or when I need O(n) string matching without KMP's complexity. The key idea: polynomial hash lets you update the window in O(1) by subtracting the outgoing character's contribution and adding the incoming one. I always verify on hash match because collisions can occur — the overall expected complexity is still O(n+m). For interview problems about finding repeated substrings, I combine binary search on length with rolling hash.",
     trap:
       "A hash match does NOT guarantee a string match — you must verify by comparing the actual substrings. Forgetting verification turns a probabilistically correct algorithm into an incorrect one. Also: when removing the leading character, you must multiply by the modular inverse of p (or precompute p^(m-1) mod q) — getting the exponent wrong makes the hash incorrect.",
+    memoryAnchor:
+      "Rolling hash = a conveyor belt sushi scanner. As each plate rolls by, you update the fingerprint by dropping the leftmost plate and adding the new one -- no need to re-scan the whole belt.",
   },
 
   // ── Trees & Graphs ───────────────────────────────────────────────────────────
@@ -361,6 +377,8 @@ const concepts: Concept[] = [
       "My decision between DFS and BFS: if the problem asks for shortest path (unweighted), use BFS. If the problem asks for existence, connected components, cycle detection, or topological order, DFS is usually simpler. For trees specifically, DFS maps to recursive thinking — define the return value per node and let the recursion compose. For graphs, I always maintain a visited set. I also consider space: BFS can be memory-heavy if the graph is wide, DFS can stack-overflow if the graph is deep.",
     trap:
       "BFS finds the shortest path in UNWEIGHTED graphs only. If edges have different weights, BFS gives wrong shortest paths — use Dijkstra. Also: DFS on a graph without a visited set will loop forever on cycles. Forgetting 'visited' for graph DFS is the #1 mistake.",
+    memoryAnchor:
+      "DFS = a curious cat going down every hallway until it hits a dead end, then backing up. BFS = a ripple in a pond -- expands evenly in all directions, reaching the nearest shore first.",
   },
   {
     id: "tree-traversals",
@@ -376,6 +394,8 @@ const concepts: Concept[] = [
       "I think of traversals by what they solve: inorder for BST properties (sorted output, validation), preorder for serialization/cloning (root available before children), postorder for bottom-up computation (subtree sizes, path sums). When I see 'compute something about each subtree', I immediately think postorder — solve left, solve right, combine at root. For iterative traversal, I can implement inorder with an explicit stack if stack depth is a concern.",
     trap:
       "Inorder gives sorted output only for a BINARY SEARCH TREE, not a generic binary tree. Also: validating a BST with inorder requires checking the previous value, not just checking left < root < right locally — the local check misses cases where a node is in the wrong subtree.",
+    memoryAnchor:
+      "PRE-order = announcement before the meeting (root first). IN-order = reading a book left to right (sorted for BST). POST-order = cleaning up after the party (children done first, parent last).",
   },
   {
     id: "lca",
@@ -391,6 +411,8 @@ const concepts: Concept[] = [
       "For a BST, LCA is O(h) — just navigate left or right based on values. For a generic binary tree, the recursive O(n) approach is elegant: return p or q when found, propagate non-null up, return current node when both children are non-null. I mention that binary lifting is the production approach for multiple LCA queries — O(n log n) preprocessing, O(log n) per query. In interviews I'd implement the recursive approach and mention the optimization exists.",
     trap:
       "The recursive LCA returns the LCA even if only one of p or q exists in the tree — it returns whichever node it found. If the problem guarantees both nodes exist, this is correct. If not, you need to verify both were actually found, which requires additional logic.",
+    memoryAnchor:
+      "LCA = 'where do two cousins meet at the family reunion?' Trace both family lines upward until they share the same ancestor. The deepest shared grandparent is the LCA.",
   },
   {
     id: "trie",
@@ -406,6 +428,8 @@ const concepts: Concept[] = [
       "I build a trie when I need prefix-based operations that a hash map can't give efficiently — like 'find all words with prefix X' or 'check if any word in dictionary matches a pattern'. I implement it with a TrieNode class containing a children dict and is_end flag. Time per operation is O(word length), independent of dictionary size — much better than scanning all words. For the word search grid problem, I build a trie of the dictionary first, then DFS on the grid using the trie to prune dead-end paths.",
     trap:
       "Forgetting to mark is_end at the end of insert means search always returns false. Also: deleting from a trie requires careful cleanup — if you delete a word that shares a prefix with another word, you must NOT delete shared nodes. Set is_end=false for the deleted word's terminal node only.",
+    memoryAnchor:
+      "Trie = a T-REE of letters, like a phone's autocomplete keyboard. Type 'c-a-t' and each letter narrows the branch. Shared prefixes ('car', 'cat') share the same hallway until they diverge.",
   },
   {
     id: "topological-sort",
@@ -421,6 +445,8 @@ const concepts: Concept[] = [
       "When I see 'dependency ordering' or 'prerequisites', I think topological sort. I prefer Kahn's algorithm for interviews because cycle detection is explicit and the code is straightforward: build the in-degree map, push all zero-in-degree nodes to a queue, process BFS-style. I verify correctness by checking if result length equals the number of nodes — if not, a cycle exists. For DFS-based topo sort, I add nodes to a stack after completing their DFS, then reverse the stack.",
     trap:
       "Topological sort only works on a DAG (directed acyclic graph). If the problem doesn't explicitly say 'no cycles', check for them. Also: the order of equal-priority nodes is not unique — if the problem needs lexicographically smallest order, use a min-heap instead of a plain queue in Kahn's algorithm.",
+    memoryAnchor:
+      "Topological sort = getting dressed in the right order. Underwear before pants, socks before shoes. You can't put on a shirt after the jacket. Dependencies dictate the sequence.",
   },
   {
     id: "union-find",
@@ -436,6 +462,8 @@ const concepts: Concept[] = [
       "Union-Find is my default for dynamic connectivity problems: 'are these two nodes in the same group?', 'how many connected components after each union?', 'detect cycle in undirected graph'. I always implement with path compression and union by rank/size — the code is short and nearly O(1) per operation. For number of connected components, I maintain a count variable that decrements each time a successful union (of different components) occurs.",
     trap:
       "Union-Find works for UNDIRECTED connectivity. For directed graphs, use DFS/BFS or Tarjan's SCC algorithm. Also: path compression mutates the parent array during find — this is fine for connectivity queries but breaks weighted Union-Find if you forget to accumulate weights during compression.",
+    memoryAnchor:
+      "Union-Find = friend groups at a party. 'Find' asks 'who's your group leader?' 'Union' merges two groups under one leader. Path compression = everyone just memorizes the big boss directly, skipping the chain of command.",
   },
   {
     id: "dijkstra",
@@ -451,6 +479,8 @@ const concepts: Concept[] = [
       "Dijkstra is for shortest paths in weighted graphs with non-negative weights. I implement it with a min-heap of (distance, node) pairs. The lazy deletion approach — push duplicate entries and skip stale ones on pop — is simpler than a decrease-key operation and works fine for interviews. I always verify: no negative weights? Use Dijkstra. Negative weights but no negative cycles? Use Bellman-Ford. Negative cycles? Problem is undefined for shortest path.",
     trap:
       "Dijkstra FAILS with negative edge weights. It can incorrectly finalize a node's distance before a shorter path through a negative edge is discovered. Also: when using a heap without decrease-key, the same node can appear multiple times — check if the popped distance matches current dist[node] before processing.",
+    memoryAnchor:
+      "Dijkstra = a greedy GPS. It always expands the closest unvisited city first, like a growing ink blot on a map. It never revisits -- once a city is 'locked in' as closest, that's final (breaks if roads have negative tolls).",
   },
 
   // ── Dynamic Programming ──────────────────────────────────────────────────────
@@ -468,6 +498,8 @@ const concepts: Concept[] = [
       "I start with the recursive structure and memoize — it's faster to reason about correctness. Once I have the memoized solution working, I explain how to convert to tabulation by identifying the dependency order and filling the table bottom-up. For space optimization, I ask 'which previous states do I need?' — if only dp[i-1], I can use two variables instead of an array. In Python, I use @functools.cache for memoization to avoid writing the cache dictionary manually.",
     trap:
       "Memoization with Python's default recursion limit of 1000 will fail for inputs that produce recursion depth > 1000. Always mention this constraint and offer tabulation as the production-safe alternative. Also: if your memoization key doesn't capture all relevant state, you'll return incorrect cached results — the key must uniquely determine the subproblem.",
+    memoryAnchor:
+      "Memo = sticky notes on a fridge (top-down, write answers as you discover them). Tabulation = filling in a spreadsheet row by row (bottom-up, systematic). Both avoid re-cooking the same dish twice.",
   },
   {
     id: "dp-patterns",
@@ -483,6 +515,8 @@ const concepts: Concept[] = [
       "When I see a DP problem, I identify which canonical pattern it resembles. 'Maximize value given a constraint' → knapsack. 'Align two sequences' → LCS/edit distance family. 'Subsequence of one sequence' → LIS family. 'Minimum steps/coins to reach target' → coin change / BFS on implicit graph. Then I define the state, write the recurrence, handle base cases, and optimize space if possible. The hardest part is always the state definition — I make sure it captures exactly enough information to make the optimal decision.",
     trap:
       "0/1 knapsack iterates capacity in DECREASING order when using a 1D array — this ensures each item is used at most once. Iterating forward (unbounded knapsack order) allows the same item to be counted multiple times. Swapping these two iteration directions is the most common knapsack bug.",
+    memoryAnchor:
+      "DP patterns = four kitchen recipes. Knapsack = packing a lunchbox (pick items, don't exceed weight). LCS = aligning two DNA strands. LIS = stacking boxes by size. Coin change = making exact change at a vending machine with limited denominations.",
   },
   {
     id: "dp-state-def",
@@ -498,6 +532,8 @@ const concepts: Concept[] = [
       "I define the DP state explicitly before writing any code. I ask: what is dp[i][j][k] and what does it represent? Then I write the recurrence as 'dp[state] = some combination of smaller states'. If I find myself needing a variable not in my state to compute the recurrence, I add it to the state. I also estimate state count × work per state = total complexity upfront, to verify it's feasible before implementing.",
     trap:
       "Adding unnecessary dimensions to the state space 'to be safe' turns a polynomial solution exponential. Be minimal. Conversely, if your recurrence needs a variable that's not in the state, your state is incomplete — adding dimensions is necessary in that case, not a sign of over-engineering.",
+    memoryAnchor:
+      "DP state = your GPS coordinates. Too few dimensions (just latitude) and you can't navigate. Too many (latitude + longitude + altitude + shoe color) and you'll never finish computing routes. Capture exactly what you need to decide the next turn.",
   },
 
   // ── Sorting & Searching ──────────────────────────────────────────────────────
@@ -515,6 +551,8 @@ const concepts: Concept[] = [
       "Quicksort is average O(n log n) with excellent cache performance — it's usually the fastest comparison sort in practice. The key insight is the partition step: everything less than pivot ends up left, everything greater ends up right, and the pivot is in its final position. I use random or median-of-three pivot to avoid O(n²) worst case. For finding the k-th largest element, quickselect gives O(n) average — I recurse only into the partition containing the k-th element.",
     trap:
       "Quicksort on a sorted array with last-element pivot selection is O(n²) — the pivot is always the minimum, partitioning reduces size by only 1 each step. Always randomize the pivot or use median-of-three. Also: Lomuto partition with duplicates of the pivot can perform O(n²) — use three-way partition for inputs with many repeated elements.",
+    memoryAnchor:
+      "Quicksort = picking a team captain (pivot), everyone shorter goes left, taller goes right. Then each side picks their own captain and repeats. Bad captain picks (always shortest kid) make it painfully slow.",
   },
   {
     id: "mergesort",
@@ -530,6 +568,8 @@ const concepts: Concept[] = [
       "I choose mergesort when I need guaranteed O(n log n), stability, or when working with linked lists (where in-place merging is O(1) extra space). For arrays in memory, quicksort is usually faster due to cache locality. For counting inversions in an array, mergesort is canonical — count how many times during merging you pick from the right array before the left (each such event counts inversions). I've also used the merge step alone for 'merge k sorted lists' problems.",
     trap:
       "Mergesort is NOT in-place for arrays — it requires O(n) auxiliary space for the merge step. Claiming it's O(1) space is wrong. In-place merge exists (e.g., block merge sort) but is complex and not expected in interviews. Also: merge is O(n) time, not O(1) — it's the step that makes mergesort work, not the recursion alone.",
+    memoryAnchor:
+      "Mergesort = splitting a deck of cards in half repeatedly until you have single cards, then merging sorted piles back together like a zipper. Steady and reliable -- always O(n log n), no bad luck possible.",
   },
   {
     id: "counting-sort",
@@ -545,6 +585,8 @@ const concepts: Concept[] = [
       "I use counting sort when keys are integers in a small bounded range and n is large — for example, sorting ages, scores out of 100, or characters in a string (O(n + 26)). I use radix sort when keys are integers or fixed-length strings and comparison-based sorts are too slow. The key trade-off: both are non-comparison-based and break the O(n log n) barrier but require additional assumptions about the data (bounded integers). In interviews, mentioning these shows you understand that O(n log n) is not always the optimal answer.",
     trap:
       "Counting sort requires ALL values to be non-negative integers (or mapped to such). For negative numbers, shift all values by min(array). Also: counting sort is only faster than O(n log n) when k = O(n). If k = O(n²), counting sort is O(n²) and worse than comparison sorts.",
+    memoryAnchor:
+      "Counting sort = sorting M&Ms by color. Don't compare them -- just count how many of each color, then line them up. Blazing fast if few colors (small k), useless if every candy is unique.",
   },
 
   // ── Heaps & Priority Queues ──────────────────────────────────────────────────
@@ -562,6 +604,8 @@ const concepts: Concept[] = [
       "A heap is a complete binary tree satisfying the heap property, stored compactly as an array using index arithmetic. The key insight is the array layout: it avoids pointer overhead and is cache-friendly. I use heaps when I need repeated access to the min or max of a dynamic collection. BUILD-HEAP is O(n), not O(n log n) — this is a common interview question. Python's heapq is a min-heap; I negate values for max-heap, or use a wrapper class with reversed comparison.",
     trap:
       "Python's heapq.heappush/heappop are correct but do NOT support decrease-key directly. For Dijkstra, use the lazy deletion pattern: push duplicate (new_dist, node) entries and skip processing stale entries on pop by checking if the popped distance matches the current best. Also: heapq operates on a LIST in Python — the list must be initialized as a heap via heapq.heapify() before using push/pop.",
+    memoryAnchor:
+      "Heap = a tournament bracket stored in an array. The champion (min or max) is always at the top. New challengers bubble up; dethroned champs sink down. Parent is always the winner of its two children.",
   },
   {
     id: "kth-largest",
@@ -577,6 +621,8 @@ const concepts: Concept[] = [
       "For k-th largest in a stream or when memory is limited, I use a min-heap of size k — O(n log k) time, O(k) space, and easily handles new elements arriving. For a static array where k is small, quickselect gives O(n) average. I mention both trade-offs: heap is O(n log k) but online and space-efficient; quickselect is faster but offline and mutates the input. If the interviewer asks about guaranteed O(n), I mention median-of-medians but note that the constant factor makes quickselect with random pivot faster in practice.",
     trap:
       "Using a MAX-heap of size k instead of a MIN-heap of size k gives wrong results — you want the min of the top-k elements (the k-th largest) to be at the root. A max-heap of size k keeps the k largest seen so far but has the largest (not k-th largest) at the root. Keep the min-heap: the root IS the k-th largest answer.",
+    memoryAnchor:
+      "K-th largest = a VIP club with only k seats. The bouncer (min-heap root) is the weakest VIP. New arrivals only get in if they're stronger than the bouncer, who then gets kicked out. The bouncer is always your answer.",
   },
   {
     id: "merge-k-sorted",
@@ -592,6 +638,8 @@ const concepts: Concept[] = [
       "Merge k sorted lists is a direct application of a min-heap. I initialize the heap with the head of each list, then repeatedly extract the minimum and advance that list. O(n log k) time — each of the n elements is heap-inserted exactly once. I'd also mention the divide-and-conquer alternative: merge lists in pairs, like bottom-up mergesort — also O(n log k) but O(log k) levels of merging. For interviews, the heap approach is more straightforward to implement and explain.",
     trap:
       "When using Python's heapq with custom objects (linked list nodes), you can't directly compare nodes if values are equal — Python will try to compare the ListNode objects and fail. Store tuples (value, index, node) where index is a tie-breaker. Forgetting the tie-breaker causes a TypeError when two nodes have equal values.",
+    memoryAnchor:
+      "Merge K sorted = K checkout lanes at a grocery store, each already sorted. A tiny elf (the min-heap) always picks the next item from whichever lane has the smallest front item. One elf, K lanes, perfectly sorted output.",
   },
 
   // ── Hash Tables ──────────────────────────────────────────────────────────────
@@ -609,6 +657,8 @@ const concepts: Concept[] = [
       "A hash table is my default for O(1) lookup when keys are hashable. I understand that 'O(1)' is amortized average — worst case is O(n) with hash collisions or rehashing. I'd mention load factor as the key operational parameter: too low wastes space, too high degrades to O(n). In Python, dict and set are hash-based. For interview problems, I use a dict for frequency counting, inverse indexing, or memoization. For custom keys, I ensure the key is hashable and that equal objects have equal hashes.",
     trap:
       "Mutable objects cannot be dict keys in Python — they're not hashable. Lists and dicts are unhashable. Convert to tuples for hashability. Also: two objects that compare equal MUST have the same hash — if you override __eq__ without overriding __hash__, the default hash still uses object identity, which can cause correctness bugs.",
+    memoryAnchor:
+      "Hash table = a coat check. Hand over your coat (value), get a numbered ticket (hash). Retrieval is instant -- just show the ticket. Collisions = two coats get the same ticket number, so the attendant has to dig through a pile.",
   },
   {
     id: "collision-resolution",
@@ -624,6 +674,8 @@ const concepts: Concept[] = [
       "Chaining and open addressing are the two fundamental collision strategies. Chaining is simpler and degrades gracefully with high load, but has pointer overhead and poor cache performance. Open addressing is cache-friendly but requires the load factor to stay well below 1. In practice, Java's HashMap uses chaining with tree nodes at high load (convert bucket list to red-black tree at length 8 for O(log n) worst case). Python uses open addressing with compact storage. I use this knowledge to explain why hash table performance degrades with adversarial inputs and how randomized hashing mitigates it.",
     trap:
       "Deleting from an open-addressing hash table cannot simply zero out the slot — subsequent lookups that probed through this slot will terminate early and fail to find keys that should be found. Use a 'tombstone' marker: the slot is treated as occupied for probing but empty for insertion. Forgetting tombstones causes silent data corruption in deletion-heavy workloads.",
+    memoryAnchor:
+      "Collision resolution: Chaining = apartment mailboxes where multiple letters stack in one box (linked list per slot). Open addressing = a parking lot where you circle to the next empty spot if yours is taken.",
   },
 
   // ── DS Design Patterns ───────────────────────────────────────────────────────
@@ -641,6 +693,8 @@ const concepts: Concept[] = [
       "Monotonic stack is my first thought when I see 'next greater/smaller element', 'largest rectangle', or 'trapping rain water'. The invariant is simple: when I pop an element, I've found the element that broke the monotonic property — and that relationship (next greater, previous smaller, etc.) is what I record as the answer for the popped element. Each element is pushed and popped at most once → O(n). I apply the same idea with a deque for sliding window maximum, where I additionally remove expired elements from the front.",
     trap:
       "Monotonic stack problems require careful handling of elements with equal values. For 'next greater' (strictly greater), elements equal to the stack top should NOT trigger a pop — they should be pushed on top. For 'next greater or equal', equal values should pop. Getting this wrong causes incorrect answers on inputs with duplicates.",
+    memoryAnchor:
+      "Monotonic stack = a line of increasingly tall people. When a taller person arrives, shorter people in front get eliminated because they'll never be 'seen' again. Each person enters and exits the line exactly once.",
   },
   {
     id: "fast-slow-pointers",
@@ -656,6 +710,8 @@ const concepts: Concept[] = [
       "Fast/slow pointers detect cycles in O(n) time and O(1) space — better than a hash set approach which is O(n) space. Beyond cycle detection, slow pointer at end gives middle of list — useful for palindrome checks and merge sort on linked lists. The mathematical derivation for finding the cycle start is elegant: after initial meeting, reset one pointer to head and advance both by 1; they meet at the cycle entry. I'd mention this is also applicable to 'duplicate number in array' problems where the array encodes a linked list.",
     trap:
       "The fast pointer must check both fast != null AND fast.next != null before advancing by 2. Checking only fast != null causes a null pointer exception on the second step when fast is at the last node of an odd-length list. Also: in the cycle start detection phase, both pointers must advance by EXACTLY 1 step — not fast by 2. Using 2 steps in the second phase gives incorrect results.",
+    memoryAnchor:
+      "Fast/slow = tortoise and hare on a circular track. If there's a loop, the hare laps the tortoise. No loop? The hare hits the finish line and the tortoise is at the halfway mark (linked list midpoint).",
   },
   {
     id: "interval-merge",
@@ -671,6 +727,8 @@ const concepts: Concept[] = [
       "Interval problems almost always start with sorting by start time. Once sorted, the merge pass is a single O(n) scan. For insert interval, I binary search for the right position and then merge with adjacent overlaps. For minimum meeting rooms, I switch to a heap of end times — greedily reuse the room that frees up soonest. The key invariant to check is whether overlap is strict (c < b) or non-strict (c <= b) — it depends on whether [1,3] and [3,5] are considered overlapping in the problem.",
     trap:
       "Forgetting to sort intervals before merging makes the algorithm incorrect — the merge assumes intervals are in order. Also: the merge condition is c ≤ current_end (not c < current_end) for non-strict overlap. If two intervals share only a boundary point (e.g., [1,3] and [3,5]) and the problem says they should NOT be merged, use strict inequality c < b.",
+    memoryAnchor:
+      "Interval merge = stacking TV show recordings on a timeline. Sort by start time, then swallow any show that overlaps with the current block. Two shows overlap if one starts before the other ends.",
   },
 ];
 

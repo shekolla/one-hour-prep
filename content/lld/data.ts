@@ -236,6 +236,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "SRP says a class should have exactly one reason to change, meaning it is responsible to exactly one actor. If I have an OrderService that calculates pricing, sends confirmation emails, and writes to the database, that is three reasons to change — pricing rules change, email templates change, schema changes. I split it into PricingEngine, OrderNotifier, and OrderRepository. Each is independently testable and deployable in a separate module.",
     trap: "Do not say 'a class should do one thing' — that is the Unix principle, not SRP. The distinction matters: a class can do many related things as long as they all serve the same actor. An interviewer will probe whether you understand the actor framing.",
+    memoryAnchor: "SRP = one chef, one station. The grill cook doesn't also wash dishes and seat guests. If the health inspector (actor 1) and the interior designer (actor 2) both change your class, it has two bosses — split it.",
   },
   {
     id: "ocp",
@@ -249,6 +250,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "OCP means: when requirements change, I want to add a new class rather than edit an existing one. If I'm building a report generator that supports PDF and CSV today, I define a ReportFormatter interface and have PdfFormatter and CsvFormatter implement it. Tomorrow, when Excel support arrives, I write ExcelFormatter — the generator never changes. The violation would be a method full of if-else or switch blocks that I must reopen every time.",
     trap: "Do not claim OCP means you never modify code — you always modify code to add the abstraction in the first place. OCP applies to stable modules: once a module is well-used and tested, protect it from change. Also, over-applying OCP produces needless abstraction for things that will never vary.",
+    memoryAnchor: "OCP = a power strip. You plug in new devices (extension) without rewiring the wall (modification). The outlet is closed for renovation but open for new appliances.",
   },
   {
     id: "lsp",
@@ -262,6 +264,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "LSP says any subclass instance must be usable wherever the parent type is expected, without the caller needing to know the difference. The test: if I hand your code a subclass reference wrapped in a base-type variable, does it still behave correctly? The Square-Rectangle example breaks LSP because Square's setWidth changes height, violating the Rectangle contract. The right fix is not to make Square extend Rectangle — instead, model them as separate implementations of a Shape interface.",
     trap: "Interviewers often ask about the Square-Rectangle problem. The answer is: inheritance models 'is-a' in a behavioural sense, not a taxonomic one. A square is a rectangle in geometry but not in software because the mutability contracts differ. If both are immutable value objects (area(), perimeter()), the hierarchy is fine.",
+    memoryAnchor: "LSP = hiring a substitute teacher. The students (callers) shouldn't notice anything weird. If the sub starts teaching yoga instead of math, the substitution is broken — same title, wrong behavior.",
   },
   {
     id: "isp",
@@ -275,6 +278,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "ISP tells me to keep interfaces narrow and client-focused. If I'm designing a Document interface with open(), save(), print(), and fax() methods, a DocumentViewer that only reads files is forced to depend on save and fax — methods it cannot meaningfully implement. I split into Readable, Writeable, Printable, and Faxable. ViewOnly clients depend only on Readable. This also makes mocking in tests trivial — mock only the interface you need.",
     trap: "ISP does not mean every interface must have exactly one method. Single-method interfaces (SAM) are common in functional code but ISP is about client need. An interface with five methods that all serve the same client cohesively is fine.",
+    memoryAnchor: "ISP = restaurant menus. Don't hand the vegan a 40-page steakhouse menu — give them a focused vegan menu. Each diner (client) gets only the options (methods) they can actually use.",
   },
   {
     id: "dip",
@@ -288,6 +292,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "DIP says my OrderService should not import MySQLOrderRepository directly — it should import an OrderRepository interface defined in the same domain package. MySQLOrderRepository implements that interface. Now if I swap MySQL for Postgres, the service never changes. DIP also makes unit testing clean: I inject a MockOrderRepository that satisfies the interface, no real database needed. This principle is the motivation behind dependency injection containers and the ports-and-adapters architecture.",
     trap: "DIP is not the same as Dependency Injection. DI is the technique (passing dependencies); DIP is the principle (depend on abstractions). You can violate DIP while using DI if you inject a concrete class rather than an interface.",
+    memoryAnchor: "DIP = wall outlets. Your laptop (high-level) doesn't hardwire to a specific power plant (low-level). Both depend on the standard outlet interface. Swap coal for solar — the laptop never knows.",
   },
 
   // ── Creational Patterns ────────────────────────────────────────────────────
@@ -303,6 +308,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "I implement Singleton via the initialization-on-demand holder idiom: a private static nested class holds the instance field, which is initialized when the holder class is first loaded. JVM class loading is lazy and thread-safe, so this gives us lazy initialization and thread-safety with zero synchronization overhead on the hot path. In a modern codebase I'd mark it as a singleton scope in a DI framework rather than hardcoding the pattern — it's testable and the lifecycle is explicit.",
     trap: "Double-checked locking without volatile is broken in Java before 5.0. Even in Java 5+, the instance field must be volatile to prevent the JVM from publishing a partially constructed object due to instruction reordering. The safe alternatives are: volatile DCL, enum Singleton, or the holder idiom.",
+    memoryAnchor: "Singleton = Highlander: 'There can be only one.' One ring, one throne, one instance. But unlike the movie, your singleton is a global celebrity everyone secretly depends on — famous and hard to replace.",
   },
   {
     id: "factory-method",
@@ -316,6 +322,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Factory Method separates the question of 'what to create' from 'how to use it'. My DocumentParser base class defines a createParser() method. XMLDocumentParser overrides it to return an XMLParser. The client calls parser.parse() without ever knowing which implementation it has. This satisfies DIP — the client depends only on the Parser interface — and OCP — adding YAML support means adding YAMLParser and YAMLDocumentParser without touching the base. For interview purposes: Factory Method = one product type, deferred to subclass; Abstract Factory = multiple related product types, deferred to a factory family.",
     trap: "Factory Method is not just a static method that creates objects — that is a Simple Factory, which is not a GoF pattern. Factory Method is a virtual method overridden by a subclass. If there is no subclass deferral, it is not Factory Method.",
+    memoryAnchor: "Factory Method = a pizza shop franchise. The base recipe says 'make dough' but each city's branch (subclass) decides whether it's New York thin crust or Chicago deep dish. The menu (interface) stays the same.",
   },
   {
     id: "abstract-factory",
@@ -329,6 +336,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "I use Abstract Factory when I need to guarantee a family of products is internally consistent. In a cross-platform UI: AbstractUIFactory declares createButton(), createDialog(), createTextField(). WindowsFactory and MacFactory each produce platform-specific widgets. The application bootstraps by selecting the factory based on OS, then every component is created through that factory — no mixing. The downside I always flag: extending the product family (new widget type) requires changes to every concrete factory, so this pattern is best when the family is stable.",
     trap: "Abstract Factory vs Factory Method: Abstract Factory is for families of products (multiple product types, one factory per platform). Factory Method is for a single product type (one product, creation deferred to a subclass). Conflating them is the #1 interview mistake on creational patterns.",
+    memoryAnchor: "Abstract Factory = IKEA vs Pottery Barn. Pick a store (factory) and everything you buy — table, chair, lamp — matches the same style. You never mix IKEA legs with Pottery Barn tops.",
   },
   {
     id: "builder-pattern",
@@ -342,6 +350,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Builder solves two problems: telescoping constructors (8-argument overloads) and invalid intermediate state (an object that is partially constructed). I put a static Builder nested class in the Product. Each setter returns this for chaining. build() validates all required fields and invariants before calling the Product's private constructor. The object is immutable after construction. I always mention the validation opportunity in build() — it is the key advantage over setting fields directly or using a no-arg constructor with setters.",
     trap: "Builder is not the same as a factory. Factory decides which type to create; Builder constructs one specific type step-by-step. The interviewer may ask when to prefer Builder over a factory — the answer is when the same type has many construction variants driven by parameter choices, not by polymorphic type selection.",
+    memoryAnchor: "Builder = Subway sandwich artist. You pick bread, then meat, then cheese, then veggies, then sauce — step by step. At the end they wrap it up (build()). You never get a half-made sandwich thrown at you.",
   },
   {
     id: "prototype-pattern",
@@ -355,6 +364,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Prototype is the pattern for cloning. I use it when constructing a fresh object is expensive — say, a report template that takes 500ms to build from raw data. I build it once, then clone it for each user session. The critical question is shallow vs deep copy. I use a copy constructor rather than clone() to control exactly what is deep-copied versus shared. In practice, I most often see prototype in undo/redo systems (each state is a clone of the previous) and in game engines (spawn an enemy from a template prototype).",
     trap: "The shallow-vs-deep copy issue is where most prototype discussions break down. Shallow copy shares mutable sub-objects across clones — mutating one mutates all. Always specify whether your clone is shallow or deep, and justify why.",
+    memoryAnchor: "Prototype = photocopying a document. Fast and cheap, but if the original has a sticky note (mutable reference), the copy just has a picture of it — you can't peel it off. Deep copy = rewriting the whole doc by hand, sticky notes included.",
   },
 
   // ── Structural Patterns ────────────────────────────────────────────────────
@@ -370,6 +380,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Adapter is my go-to for third-party library integration. I define a PaymentGateway interface in my domain. Then I write a StripeAdapter that holds a StripeClient reference and implements PaymentGateway — translating my domain's charge(Money amount) into Stripe's createCharge() call. The domain never imports the Stripe SDK. If I need to switch to Braintree, I write a BraintreeAdapter and change one DI binding. I always use object adapter (composition) over class adapter (inheritance) — it avoids the adaptee's class hierarchy entirely.",
     trap: "Adapter does not add behaviour — it translates. If you find yourself adding logic in the adapter beyond translation, you may have misidentified the pattern. That logic belongs in a service or decorator.",
+    memoryAnchor: "Adapter = a travel plug converter. Your US laptop charger (old interface) meets a European wall socket (expected interface). The adapter doesn't change the voltage — it just makes the prongs fit.",
   },
   {
     id: "decorator-pattern",
@@ -383,6 +394,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Decorator is my preferred alternative to subclassing when I need stackable, runtime-configurable behaviour additions. I define a DataSource interface; FileDataSource is the concrete component. EncryptionDecorator, CompressionDecorator, and LoggingDecorator all implement DataSource and accept a DataSource in their constructor. I compose them: new LoggingDecorator(new CompressionDecorator(new FileDataSource('data.txt'))). Adding logging does not touch FileDataSource. Removing logging is one line. With subclassing, I'd need LoggedCompressedFileDataSource — the hierarchy explodes. I always discuss the identity and debugging trade-offs.",
     trap: "The Decorator and Proxy patterns look identical structurally (both wrap the same interface). The distinction is intent: Decorator adds behaviour; Proxy controls access (lazy init, caching, access control, remote proxy). In interviews, always state the intent before the structure.",
+    memoryAnchor: "Decorator = Russian nesting dolls (matryoshka). Each layer wraps the previous one and adds something — paint, glitter, a hat. Unwrap them all and the core doll is unchanged. Stack as many layers as you want.",
   },
   {
     id: "facade-pattern",
@@ -396,6 +408,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Facade is the pattern for API design within a layered system. My OrderFacade exposes placeOrder(cart, customer) — behind the scenes it orchestrates InventoryService, PricingEngine, PaymentGateway, NotificationService, and AuditLog. The client (REST controller) calls one method. The subsystem components can still be used independently for admin workflows. I distinguish Facade from Mediator: Facade is a one-directional simplification — the client calls the facade, which calls the subsystem; the subsystem never calls the facade back.",
     trap: "Facade can grow into a god class if it accretes business logic rather than pure delegation. Monitor facade method count and complexity. If the facade is making decisions (not just orchestrating), refactor the decisions back into the appropriate subsystem.",
+    memoryAnchor: "Facade = a hotel concierge. You say 'plan my evening' and they call the restaurant, the theatre, and the taxi company behind the scenes. You never dial three numbers yourself — one friendly face handles the chaos.",
   },
   {
     id: "composite-pattern",
@@ -409,6 +422,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Composite is the pattern when I need to treat a tree uniformly. In a permissions system: Permission is the component interface with isAllowed(action). SinglePermission is a leaf; PermissionGroup is a composite that checks all children. The service calls permission.isAllowed() without knowing whether it's a single permission or a group of groups. This is also the pattern for menu systems, expression parsers, and organizational hierarchies. The design decision I always flag: where to put add/remove — on the component interface for transparency, or only on the composite class for type safety.",
     trap: "Composite assumes a tree structure. If the structure has cycles (directed graph), recursive operations must track visited nodes or they will loop infinitely.",
+    memoryAnchor: "Composite = file folders. A folder can contain files AND other folders. 'Get size' works the same whether you call it on a single file or a folder-of-folders — it just recurses down the tree.",
   },
   {
     id: "proxy-pattern",
@@ -422,6 +436,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "I use proxy most often for cross-cutting concerns without modifying the target class. A LoggingProxy implements the same service interface, wraps the real service, and logs every method call's duration and result. The client gets the proxy injected — it never knows. Lazy loading is another scenario: a HeavyReportProxy holds no data until the first call to getReport() — then it loads from the DB, caches, and returns. I always clarify: Proxy keeps the same interface and controls access; Decorator keeps the same interface and adds behaviour. The line is intent, not structure.",
     trap: "JDK dynamic proxy only proxies interfaces — it cannot proxy a concrete class directly. CGLIB subclasses the concrete class, but final classes and final methods cannot be proxied. Know which Spring beans are not AOPable (final classes, @Configuration with proxyBeanMethods=false).",
+    memoryAnchor: "Proxy = a bouncer at a club. Same door (interface), but the bouncer decides who gets in (access control), checks IDs (protection proxy), or tells you 'the DJ is setting up' until the real party starts (virtual/lazy proxy).",
   },
 
   // ── Behavioral Patterns ────────────────────────────────────────────────────
@@ -437,6 +452,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Observer decouples the Subject from the logic that reacts to its changes. In an e-commerce order system: OrderService is the Subject; EmailNotifier, InventoryUpdater, and AnalyticsTracker are Observers. When an order completes, the service fires a single event and each observer handles it independently. I always raise two issues: memory leaks from forgotten listener deregistration, and exception isolation (wrap each notification in try/catch so one bad observer doesn't block the rest). For production, I'd use an event bus or message queue to get delivery guarantees and async processing.",
     trap: "Observer assumes synchronous in-process communication. If an observer does IO (sends email, writes to DB), the Subject blocks. For IO-heavy observers, use an async event bus or a message broker (Kafka, RabbitMQ). Do not conflate Observer (in-process, synchronous by default) with publish-subscribe (cross-process, async, broker-mediated).",
+    memoryAnchor: "Observer = YouTube subscriptions. The creator (subject) uploads a video, and every subscriber (observer) gets notified automatically. The creator has no idea who's watching — they just hit publish and the bell rings everywhere.",
   },
   {
     id: "strategy-pattern",
@@ -450,6 +466,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Strategy is the pattern that replaces switch-case polymorphism with object polymorphism. Instead of a Sorter.sort() method with if (algorithm == 'quick') ... else if (algorithm == 'merge'), I have a SortStrategy interface with sort(int[] data) and QuickSortStrategy, MergeSortStrategy implementations. The Sorter is injected with a strategy at construction time. To add heapsort, I add HeapSortStrategy — the Sorter is untouched. In Java 8+ I can pass a method reference or lambda for simple strategies, which eliminates the ceremony of a dedicated class.",
     trap: "Strategy increases the number of objects in the system. For simple cases where algorithms will never vary, the pattern is over-engineering. The signal to use Strategy is when you catch yourself writing if-else chains or switch statements based on a type/mode flag.",
+    memoryAnchor: "Strategy = GPS navigation modes. Same destination, but you swap the algorithm: fastest route, shortest route, avoid tolls. The car (context) doesn't care which one — it just follows the directions it's given.",
   },
   {
     id: "command-pattern",
@@ -463,6 +480,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Command is the pattern for undo/redo and queued execution. In a text editor: every user action (InsertTextCommand, DeleteTextCommand, FormatCommand) is a Command object with execute() and undo(). The editor maintains an undo stack. Ctrl-Z pops the top command and calls undo(). Ctrl-Y re-executes it. The same pattern works for distributed job queues: serialize the command object, push it to a queue, workers call execute(). I always discuss undo strategy: snapshot-based (save entire document state before each command — simple but O(n) space) vs inverse command (for InsertText('hello'), undo is DeleteText(position, 5) — O(1) space but requires computing the inverse).",
     trap: "Command vs Strategy: both encapsulate behavior. Strategy encapsulates an interchangeable algorithm with no receiver — the context IS the receiver. Command encapsulates a specific action on a specific receiver — the command and receiver are separate. Commands are usually short-lived (one action); Strategies are usually long-lived (injected into a context and reused).",
+    memoryAnchor: "Command = a restaurant order ticket. The waiter writes down 'one burger, no onions' (the command), pins it to the board (queue), and the cook (receiver) executes it later. You can even cancel the ticket (undo) before the grill fires.",
   },
   {
     id: "state-pattern",
@@ -476,6 +494,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "State is the pattern for objects whose behavior changes dramatically based on internal state. For an Order object: rather than if (status == PENDING) doX() else if (status == PAID) doY(), I have a State interface with ship(), cancel(), refund() methods. PendingState, PaidState, ShippedState each implement the interface — PendingState.cancel() transitions to CancelledState; PaidState.cancel() triggers a refund first. The Order context delegates all lifecycle methods to its current state. Adding a new state (BackorderedState) is a new class, not a change to Order. I always discuss who owns transitions and mention the state machine framework option for complex lifecycles.",
     trap: "For simple two- or three-state objects with minimal transition logic, State is over-engineering. The pattern earns its complexity when states are 5+, transition logic is non-trivial, or state-specific behaviour spans many methods.",
+    memoryAnchor: "State = a vending machine. Insert coin and it changes personality: from 'insert coin please' mode to 'pick your snack' mode. Same machine, totally different behavior depending on what state it's in. Each state is a different mood.",
   },
   {
     id: "template-method",
@@ -489,6 +508,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Template Method is my pattern when I want subclasses to plug into a fixed algorithm without rewriting it. My DataImporter base class defines import() which calls validate(), transform(), load() in sequence, wrapping each in error handling and logging. Concrete classes like CSVImporter and JSONImporter override validate() and transform() only. The import orchestration never changes. I prefer this over Strategy when the variation is small relative to the fixed algorithm, and when the subclass relationship is genuinely 'is-a specialization'. For more varied algorithms, Strategy is more flexible.",
     trap: "Template Method enforces compile-time coupling via inheritance. If the hook methods change signatures, all subclasses must change. Prefer Strategy when the variation point may evolve independently of the skeleton.",
+    memoryAnchor: "Template Method = a tax form. The IRS defines the steps (income, deductions, calculate, sign) but you fill in YOUR specific numbers. The skeleton is fixed; the blanks are yours to override.",
   },
   {
     id: "chain-of-responsibility",
@@ -502,6 +522,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Chain of Responsibility is the pattern behind every middleware stack I've built. In an API gateway: the request passes through AuthenticationFilter, AuthorizationFilter, RateLimitFilter, RequestValidationFilter, and finally the business handler. Each filter either short-circuits (returns 401/429) or calls chain.doFilter(). Adding a new concern (IP allowlist check) is adding one filter class and inserting it in the chain — no existing filters change. I distinguish classic CoR (first capable handler wins) from pipeline (all handlers execute) — middleware is almost always a pipeline.",
     trap: "Classic CoR has no guarantee that any handler processes the request — if no handler matches, the request is dropped silently. Always have a default handler or explicit error for unhandled requests.",
+    memoryAnchor: "Chain of Responsibility = airport security checkpoints. Your bag goes through ID check, then X-ray, then customs. Each station either stops you or waves you through to the next. Add a new scanner? Just insert it in the line.",
   },
 
   // ── Concurrency Patterns ───────────────────────────────────────────────────
@@ -517,6 +538,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "My preferred thread-safe Singleton is the initialization-on-demand holder idiom: a private static nested class holds the instance field, initialized at class load time by the JVM. The JVM guarantees class loading is atomic and lazy — no synchronization needed. My second choice for serialization-safety is an enum Singleton. I avoid the double-checked locking pattern in new code — it requires volatile and is harder to reason about than the holder idiom. In production systems, I'd replace manual Singleton with a DI container singleton scope — it's testable, mockable, and the lifecycle is managed by the framework.",
     trap: "The most common mistake is synchronized getInstance() — correct but synchronizes on every single call, killing throughput. The second mistake is DCL without volatile — looks correct, fails under the Java Memory Model due to instruction reordering.",
+    memoryAnchor: "Thread-Safe Singleton = building a statue in a town square while 100 workers watch. You need to make sure only ONE statue gets built, even if 10 workers start at the same time. Double-check the pedestal is empty, THEN lock the crane.",
   },
   {
     id: "immutable-objects",
@@ -530,6 +552,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Immutable objects are my first line of defense in concurrent code. A Money value object is final, with private final long cents and private final Currency currency — no setters, defensive copies in getters that return mutable types, and final class to prevent mutable subclasses. Two threads can share a Money object freely — no locking needed. I use Builder pattern to construct complex immutable objects. The trade-off I always raise: every update creates a new object, so for high-mutation rate scenarios (counters, accumulators), use AtomicLong or similar mutable thread-safe types instead.",
     trap: "Shallow immutability is not true immutability. A class with all final fields can still be mutable if one of those fields is a reference to a mutable object (e.g., final List<String> items — items is final, but items.add() still mutates state). Deep immutability requires all reachable state to be immutable.",
+    memoryAnchor: "Immutable Objects = a printed book. Once published, nobody can change the words on the page. Want a revised edition? Print a whole new book. Ten people can read the same copy simultaneously without stepping on each other.",
   },
   {
     id: "producer-consumer",
@@ -543,6 +566,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Producer-Consumer is the pattern for async work decoupling. I use Java's BlockingQueue: producers call queue.put(task) (blocks if queue is full, providing back-pressure); consumers call queue.take() in a loop (blocks if queue is empty, avoiding busy-waiting). In production I'd use an ExecutorService with a bounded work queue — it's the producer-consumer pattern with thread pool management built in. I always discuss: bounded vs unbounded queue (bounded gives back-pressure; unbounded risks OOM), and graceful shutdown via poison pill (producer sends N poison pills for N consumer threads, each consumer exits when it dequeues the pill).",
     trap: "The most common mistake is using an unbounded queue — it works fine under normal load but accumulates tasks under overload until the JVM runs out of memory. Always bound the queue and design the back-pressure behavior explicitly.",
+    memoryAnchor: "Producer-Consumer = a sushi conveyor belt. The chef (producer) places plates on the belt (bounded buffer); diners (consumers) grab plates as they pass. If the belt is full, the chef waits. If it's empty, diners wait. Nobody starves, nobody drowns in fish.",
   },
 
   // ── OOP Design ────────────────────────────────────────────────────────────
@@ -558,6 +582,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "Composition over inheritance is my default. I use inheritance only for a true 'is-a' relationship where the subclass satisfies the base class contract completely (LSP). For reusing behavior, I compose: a Duck has a FlyBehavior and a QuackBehavior injected via constructor. Rubber duck gets SilentQuack; flying duck gets StandardFly. To change rubber duck to squeak, I swap the QuackBehavior — no class hierarchy change. The test benefit is equally important: composed behaviors can be mocked independently. With inheritance, mocking the base class requires complex framework support.",
     trap: "Composition over inheritance is a guideline, not an absolute rule. Frameworks (e.g., Spring MVC controller base classes, JUnit test case) use inheritance deliberately. The rule is: do not use inheritance for code reuse alone. Use it only when the subclass genuinely IS the base type and satisfies all its contracts.",
+    memoryAnchor: "Composition over Inheritance = LEGO vs a carved statue. Inheritance is chiseling a statue — beautiful but permanent, and changing the nose means recarving the whole face. Composition is LEGO — snap pieces together, swap the hat anytime.",
   },
   {
     id: "cohesion-coupling",
@@ -571,6 +596,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "I think of cohesion as 'does this class have a clear identity?' and coupling as 'how many things does it need to know about?' A class with high cohesion has methods that all operate on the same data and tell a single story. A class with low coupling talks to abstractions, not concretions, and does not reach through objects to get to data (Law of Demeter). When I see a class with 20 fields and methods scattered across unrelated concerns, that is low cohesion — I split it. When I see a class that imports 15 other classes, that is high coupling — I introduce interfaces or a mediator.",
     trap: "Low coupling does not mean no coupling. Every system must couple somewhere — the goal is to couple at stable abstraction points (interfaces, events) rather than volatile concretions. Zero coupling means zero collaboration, which means nothing gets done.",
+    memoryAnchor: "Cohesion & Coupling = a kitchen. High cohesion: all baking tools in one drawer (related things together). Low coupling: the oven doesn't need to know about the dishwasher to work. When your toaster requires the blender to be on, you've got a coupling problem.",
   },
 
   // ── Data Modeling ─────────────────────────────────────────────────────────
@@ -586,6 +612,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "The Entity vs Value Object distinction is central to clean domain modeling. I make Money a Value Object: final class, private final BigDecimal amount, private final Currency currency, all validation in the constructor, equals/hashCode by value, no setters. Two Money(100, USD) objects are identical — I can use either one. A Customer is an Entity: it has a customerId that persists across mutations. Two customers with the same name and address are still different entities. The practical impact: Value Objects are safe to pass by value, copy freely, and use as map keys. Entities must be compared by ID, and their lifecycle must be managed carefully.",
     trap: "Do not make everything an Entity out of habit. Primitive obsession — using int or String for domain concepts — is a design smell. An EmailAddress as a String has no format validation, no domain methods, and no self-documentation. Elevate it to a Value Object.",
+    memoryAnchor: "Value Object vs Entity = dollar bills vs people. Two $10 bills are interchangeable — you don't care which specific bill you have (value object). But two people named 'John Smith' are NOT interchangeable — identity matters (entity).",
   },
   {
     id: "anemic-vs-rich",
@@ -599,6 +626,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "I prefer rich domain models for complex business logic. An Order knows how to cancel itself: it checks if cancellation is allowed given its current state, calculates any refund, and raises a domain event — all without a service class. OrderService handles only orchestration: getting the order from the repository, calling order.cancel(), saving back, publishing the event. The test is: can a junior developer find the rule 'orders cannot be cancelled after shipment' by looking at the Order class? In a rich model, yes. In an anemic model, they must search through services. I use anemic models for simple CRUD screens where there is genuinely no domain logic.",
     trap: "Rich domain model makes sense for complex domains. Forcing rich models on simple CRUD applications (user settings, admin lookup tables) adds ceremony with no benefit. Know when the domain warrants the investment.",
+    memoryAnchor: "Anemic vs Rich = a puppet vs a real dog. An anemic model is a puppet — it just sits there while someone else (the service) moves its limbs. A rich model is a real dog — tell it 'sit' and it knows how. The behavior lives inside the object, not in a puppeteer class.",
   },
 
   // ── LLD Interview Approach ─────────────────────────────────────────────────
@@ -614,6 +642,7 @@ const concepts: Concept[] = [
     interviewAnswer:
       "I follow a five-step framework. First, I spend 3-4 minutes on requirements: what are the actors, what are the core use cases, what is explicitly out of scope? Second, I enumerate entities and their attributes without getting into code. Third, I draw relationships: which entities own which, cardinality, which are Entities vs Value Objects. Fourth, I identify one or two patterns that directly solve a specific problem in this system — I name the problem first, then the pattern. Fifth, I call out at least two trade-offs or extension points — this is where senior engineers demonstrate depth. I keep the design at the interface/class level, not implementation. I code only when asked, and I start with the most critical class.",
     trap: "The worst LLD interview mistake is immediately drawing classes without asking questions. Requirements always contain ambiguities that change the design fundamentally. A close second: naming patterns without explaining why they apply to this specific problem.",
+    memoryAnchor: "LLD Interview Framework = building a house. Step 1: ask the client what they want (requirements). Step 2: sketch the rooms (entities). Step 3: draw the hallways (relationships). Step 4: pick materials (patterns). Step 5: warn about the foundation cost (trade-offs). Never start pouring concrete before you have blueprints.",
   },
 ];
 

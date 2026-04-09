@@ -89,6 +89,18 @@ export default function ConceptCard({ concept, activeDepth, showTraps, highlight
         })}
       </div>
 
+      {/* Memory Anchor */}
+      {concept.memoryAnchor && (
+        <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-purple-400 text-xs font-semibold uppercase tracking-wider">
+              <span aria-hidden="true">💡</span> Memory Anchor
+            </span>
+          </div>
+          <p className="text-purple-200 text-sm leading-relaxed">{concept.memoryAnchor}</p>
+        </div>
+      )}
+
       {/* Interview Answer toggle */}
       <button
         onClick={() => setShowInterview((v) => !v)}

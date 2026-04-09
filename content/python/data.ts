@@ -205,6 +205,8 @@ export const concepts: Concept[] = [
       "CPython first compiles source to bytecode — a lower-level representation stored in .pyc files. Then the bytecode runs in a stack-based VM. This is why Python is 'interpreted' but not line-by-line — it compiles first. You can inspect bytecode with dis.dis(). CPython is the default implementation; PyPy uses JIT compilation for significantly faster execution of CPU-bound code.",
     trap:
       "Python is NOT purely interpreted line-by-line. It compiles to bytecode first. 'Interpreted' means the bytecode VM runs at runtime, not that compilation doesn't happen.",
+    memoryAnchor:
+      "Think of CPython as a translator who first writes down the speech in shorthand (bytecode), then reads the shorthand aloud (VM execution). It's not improvising live — there's always a written step first.",
   },
   {
     id: "gil",
@@ -220,6 +222,8 @@ export const concepts: Concept[] = [
       "The GIL ensures only one thread runs Python bytecode at a time in CPython. It protects reference counting from race conditions. For CPU-bound tasks, this means threading gives no speedup — use multiprocessing. For I/O-bound tasks, threading works well because the GIL is released during I/O waits. Python 3.13 introduced an experimental free-threaded build (PEP 703) that removes the GIL for true thread parallelism.",
     trap:
       "The GIL does NOT prevent all concurrency. I/O-bound programs benefit greatly from threading because the GIL releases during I/O. Also, C extensions like NumPy explicitly release the GIL — so NumPy operations run in parallel across threads.",
+    memoryAnchor:
+      "GIL = Giant Invisible Leash. Imagine all your threads are dogs on one leash — only one can run ahead at a time. But when a dog stops to sniff (I/O), the leash lets the next dog go.",
   },
   {
     id: "legb-scoping",
@@ -235,6 +239,8 @@ export const concepts: Concept[] = [
       "Python resolves names using LEGB — Local, Enclosing, Global, Built-in. Each function call creates a new local scope. For closures, the enclosing scope is captured. Use 'global x' to write to module scope, 'nonlocal x' to write to an enclosing function's scope. Note: class bodies are NOT part of the LEGB chain — that catches people off guard with comprehensions inside classes.",
     trap:
       "If you assign to a variable anywhere in a function, Python treats it as local for the entire function — even above the assignment. Reading it before assignment gives UnboundLocalError, not the global value.",
+    memoryAnchor:
+      "LEGB = Look Everywhere for Groceries, Buddy. You check your pocket (Local), your friend's bag (Enclosing), the car trunk (Global), then the store itself (Built-in). Always closest pocket first.",
   },
   {
     id: "import-system",
@@ -250,6 +256,8 @@ export const concepts: Concept[] = [
       "Python's import system finds modules via sys.path, executes them once, and caches in sys.modules — so reimporting is cheap. __init__.py makes a directory a package. Circular imports are possible but tricky — import the module, not specific names, and access them after the import cycle resolves. You can inspect the import machinery via importlib.",
     trap:
       "Modules are executed once and cached. If module A modifies global state at import time, that state is shared across all importers. Reimporting doesn't reset it — you need importlib.reload() for that.",
+    memoryAnchor:
+      "Importing is like microwaving a frozen dinner — it cooks (executes) the first time, then sits in sys.modules like leftovers in the fridge. Grabbing it again just opens the fridge door.",
   },
 
   // ── Memory Model ─────────────────────────────────────────────────────────────
@@ -267,6 +275,8 @@ export const concepts: Concept[] = [
       "Python's primary memory management is reference counting — each object tracks how many references point to it. When the count hits 0, memory is freed immediately. sys.getrefcount() lets you inspect it. This gives deterministic cleanup for most objects. The weakness is cycles — if A references B and B references A, neither count reaches 0, so the cyclic garbage collector handles those separately.",
     trap:
       "del x does NOT immediately free memory. It only decrements the reference count. Memory is freed only when the count reaches 0. If anything else holds a reference, the object lives on.",
+    memoryAnchor:
+      "ref-COUNT = a library book's checkout card. Each borrower adds a tally. The book goes back on the shelf (freed) only when the last borrower returns it — zero tallies left.",
   },
   {
     id: "gc-cycles",
@@ -282,6 +292,8 @@ export const concepts: Concept[] = [
       "Reference counting can't free circular references. Python's cyclic GC periodically scans container objects for cycles and frees them. It uses three generations for efficiency — most objects die young so only gen-0 runs frequently. You can tune thresholds with gc.set_threshold() or disable it entirely with gc.disable() in performance-critical code where you control your object graph.",
     trap:
       "gc.disable() doesn't disable reference counting — that always runs. It only disables the cyclic collector. If you have no cycles, gc.disable() has no downside and can speed up allocation-heavy code.",
+    memoryAnchor:
+      "Cyclic GC = the janitor who untangles Christmas lights. Ref counting handles lone bulbs fine, but when two strands are tangled in a loop, only the janitor can cut through and reclaim them.",
   },
   {
     id: "object-interning",
@@ -297,6 +309,8 @@ export const concepts: Concept[] = [
       "Python interns small integers (-5 to 256) and identifier-like strings — reusing the same object instead of creating duplicates. This means 'a is b' can be True for small ints and compile-time strings even without explicit assignment. It's a CPython implementation detail, not a language guarantee. sys.intern() forces a string into the intern table. The practical implication: always use == for value comparison, never rely on is for strings or ints outside the known range.",
     trap:
       "a = 1000; b = 1000; a is b may be True or False depending on context — Python may or may not optimize this. Never use is to compare integers or strings for value equality. Always use ==.",
+    memoryAnchor:
+      "interning = a hotel giving everyone asking for Room 42 the SAME key. Small integers (-5 to 256) are permanent hotel residents — everyone shares their key. Big numbers get a fresh room each time.",
   },
   {
     id: "slots",
@@ -312,6 +326,8 @@ export const concepts: Concept[] = [
       "Adding __slots__ to a class replaces each instance's __dict__ with fixed descriptor slots. This saves ~40-50% memory when you have millions of instances with known, fixed attributes — think data objects, lightweight value types. The trade-off: you can't add arbitrary attributes at runtime. I'd use it in data-intensive code — e.g., a Point class in a geometry engine.",
     trap:
       "__slots__ on a subclass doesn't eliminate __dict__ unless the parent also uses __slots__. Inheriting from a regular class and adding __slots__ to the subclass still gives every instance a __dict__.",
+    memoryAnchor:
+      "__slots__ = assigned parking spots instead of a free-for-all parking garage (__dict__). Fixed spots use way less space, but you can't park anywhere you want anymore.",
   },
 
   // ── Functions ─────────────────────────────────────────────────────────────────
@@ -329,6 +345,8 @@ export const concepts: Concept[] = [
       "A closure captures variables from its enclosing scope by reference — the cell object holds a live reference, not a snapshot. This lets inner functions maintain state after the outer function returns. The key gotcha is loop closures: all closures created in a loop share the same loop variable. Fix with default arguments: lambda i=i: i. Inspect closures with func.__closure__ and cell.cell_contents.",
     trap:
       "Classic loop closure bug: funcs = [lambda: i for i in range(3)] — all three lambdas return 2 (the final value of i), not 0, 1, 2. They all capture the same i cell, not a copy of each iteration's value.",
+    memoryAnchor:
+      "A closure is like a backpack that keeps a LIVE walkie-talkie to the outer function's variables — not a photo of them. The variable can change, and the backpack always hears the latest value.",
   },
   {
     id: "decorators",
@@ -344,6 +362,8 @@ export const concepts: Concept[] = [
       "A decorator is a callable that takes a function and returns a new one. @my_decorator on a function is exactly my_decorator(func) — happens at import/definition time. Stacked decorators apply bottom-up. Always use @functools.wraps to preserve the wrapped function's metadata — without it you'll break introspection and debugging. For decorators that take arguments, you need one extra level of nesting: the outer callable takes args and returns the actual decorator.",
     trap:
       "Stacked decorators apply bottom-up, not top-down. @A @B def f() → f = A(B(f)). B wraps f first. Also: decorators with arguments like @retry(3) vs @retry — the former calls retry(3) which must return a decorator, the latter passes the function directly.",
+    memoryAnchor:
+      "Decorators = gift wrapping. @decorator wraps your function in fancy paper at definition time. Stacked decorators? The bottom wrapper goes on first, then the outer one wraps around it — like nesting dolls.",
   },
   {
     id: "generators",
@@ -359,6 +379,8 @@ export const concepts: Concept[] = [
       "Generators produce values lazily — execution suspends at each yield and resumes on next(). This gives constant memory usage regardless of data size, which is critical for large files or streams. send() can pass values back in (making them coroutines). yield from delegates to a sub-generator. Generators are exhausted after one pass — create a new generator object to re-iterate.",
     trap:
       "Generators are single-use. list(gen) exhausts it — a second list(gen) returns []. Also, generator expressions aren't evaluated until iterated — the iterable they reference is evaluated at creation, but the body runs lazily.",
+    memoryAnchor:
+      "A generator is a lazy vending machine — it only makes the next snack when you press the button (next()). It remembers which slot it's on, and once it's empty, it's done forever. No refills.",
   },
   {
     id: "coroutines-async",
@@ -374,6 +396,8 @@ export const concepts: Concept[] = [
       "async def defines a coroutine — a function that can suspend at await points and let the event loop run other coroutines. It's cooperative multitasking on a single thread. await doesn't block — it yields control until I/O completes. Use asyncio.create_task() to schedule coroutines concurrently. asyncio.gather() collects results. Key point: async code only helps if you await non-blocking coroutines — calling a blocking function without run_in_executor blocks the entire event loop.",
     trap:
       "async def does not make code concurrent by itself. If you call time.sleep() instead of await asyncio.sleep(), or do CPU work, you block the entire event loop — no other coroutine runs during that time. Always use awaitable I/O or run_in_executor for blocking calls.",
+    memoryAnchor:
+      "async/await = a chef juggling multiple dishes. 'await' means 'this is in the oven, let me chop veggies for another dish.' But if you stand and watch the oven (blocking call), every other dish burns.",
   },
 
   // ── OOP & Data Model ─────────────────────────────────────────────────────────
@@ -391,6 +415,8 @@ export const concepts: Concept[] = [
       "Dunder methods let your classes integrate with Python's operators and built-ins. __repr__ should return a developer-facing unambiguous string — ideally eval()-able. __str__ is user-facing. __eq__ enables ==. __hash__ must be defined consistently with __eq__ — if two objects are equal they must have the same hash. __getitem__ and __len__ make your class work with [] and len(). I use them to make domain objects feel Pythonic rather than requiring explicit method calls.",
     trap:
       "Defining __eq__ automatically sets __hash__ to None in Python 3, making instances unhashable (can't be dict keys or in sets). You must explicitly define __hash__ if you want both equality comparison and hashability.",
+    memoryAnchor:
+      "Dunder methods = secret handshakes. When Python sees 'len(x)', it whispers '__len__?' to your object. If your object knows the handshake, it responds. Double underscores = double secret.",
   },
   {
     id: "mro",
@@ -406,6 +432,8 @@ export const concepts: Concept[] = [
       "Python uses C3 linearization to compute the MRO — the order it searches classes for attributes and methods. You can inspect it with ClassName.__mro__. super() doesn't just call the direct parent — it calls the next class in the MRO. This makes mixins work correctly: each mixin's super() call chains to the next class in the resolved order. The algorithm prevents ambiguity — if two bases have conflicting orderings, Python raises TypeError at class creation.",
     trap:
       "super() is not 'call my parent class'. It's 'call the next class in the MRO'. In multiple inheritance with mixins, that next class might not be what you expect. Always trace ClassName.__mro__ to understand the actual call chain.",
+    memoryAnchor:
+      "MRO = the seating chart at a family dinner. With multiple inheritance, Python uses C3 rules to decide who sits where — no one sits twice, and left-side family always comes before right-side.",
   },
   {
     id: "descriptors",
@@ -421,6 +449,8 @@ export const concepts: Concept[] = [
       "Descriptors are the protocol behind @property, @classmethod, @staticmethod, and even how methods work. A descriptor defines __get__ and optionally __set__/__delete__ on a class to intercept attribute access. Data descriptors (with __set__) override instance __dict__. Non-data descriptors don't. This is why you can define a @property and instance.x = value still routes through the setter. I use custom descriptors for reusable validation logic across multiple classes.",
     trap:
       "Descriptors only activate when defined on the class, not on an instance. obj.x = some_descriptor_instance does NOT activate the descriptor protocol — it just sets a value in obj.__dict__.",
+    memoryAnchor:
+      "Descriptors = a bouncer at the door of an attribute. @property is a bouncer that intercepts every get/set. A non-data descriptor is a lazy bouncer who only checks on the way in (__get__), not out.",
   },
   {
     id: "metaclasses",
@@ -436,6 +466,8 @@ export const concepts: Concept[] = [
       "Every class in Python is an instance of a metaclass — by default, type. A custom metaclass lets you intercept class creation: modify class attributes, register subclasses, enforce interfaces, or auto-generate methods. I'd use __init_subclass__ first (simpler, cleaner) and reach for a full metaclass only when I need to control the class namespace itself via __prepare__. ORMs like Django use metaclasses to turn class attributes (Field instances) into database column definitions.",
     trap:
       "Metaclasses run at class definition time, not instantiation time. A bug in your metaclass can make a class impossible to define — the error fires at import time, which is confusing to debug.",
+    memoryAnchor:
+      "Metaclass = the blueprint for blueprints. If a class is a cookie cutter and instances are cookies, the metaclass is the factory that manufactures cookie cutters. Meta = one level up from the thing itself.",
   },
 
   // ── Concurrency ───────────────────────────────────────────────────────────────
@@ -453,6 +485,8 @@ export const concepts: Concept[] = [
       "Threading is ideal for I/O-bound work — file reads, network calls, database queries — because the GIL releases during I/O, so threads genuinely run concurrently during those waits. For CPU-bound work, threads give no benefit (and actually add overhead) due to the GIL. Use ThreadPoolExecutor for a clean pool-based API. For shared mutable state, use Lock or higher-level Queue. For high-concurrency I/O, asyncio is more efficient than threads.",
     trap:
       "Even in Python, shared mutable state between threads is dangerous. The GIL prevents data corruption for simple reference count updates, but compound operations (read-modify-write) are not atomic. Use threading.Lock() for any critical section.",
+    memoryAnchor:
+      "Threads = cooks sharing one kitchen (memory) but taking turns at one stove (GIL). Great when everyone is waiting for the oven (I/O), useless when everyone needs the stove (CPU).",
   },
   {
     id: "asyncio",
@@ -468,6 +502,8 @@ export const concepts: Concept[] = [
       "asyncio is a single-threaded cooperative concurrency model. The event loop runs coroutines that voluntarily yield at await points — there's no preemption. This makes it extremely efficient for I/O-bound workloads with many concurrent connections because there's no thread-switching overhead or locking. The limit: a blocking call in any coroutine stalls every other coroutine. Use run_in_executor() to offload blocking work to a thread pool. For CPU-bound work, asyncio doesn't help — use multiprocessing.",
     trap:
       "Forgetting await is silent: result = some_async_fn() assigns the coroutine object, not the result. Python 3.4+ warns about unawaited coroutines, but it's easy to miss. Always await coroutines.",
+    memoryAnchor:
+      "asyncio = an air traffic controller on a single runway. Planes (coroutines) take off and land cooperatively. One plane hogging the runway (blocking call) means every other plane circles forever.",
   },
   {
     id: "multiprocessing",
@@ -483,6 +519,8 @@ export const concepts: Concept[] = [
       "Multiprocessing bypasses the GIL by running separate Python processes — each process has its own interpreter, memory space, and GIL. This gives true CPU parallelism across cores. Use ProcessPoolExecutor for the cleanest API. The costs: process startup is ~100ms, and passing data between processes requires serialization (pickling). For CPU-bound number crunching, the parallelism benefit far outweighs these costs. For data-heavy workloads, use shared_memory to avoid pickling overhead.",
     trap:
       "Lambdas and locally-defined functions can't be pickled and thus can't be passed to ProcessPoolExecutor on non-Linux platforms. Define workers at module level. Also, if you modify a shared object in a subprocess, changes are NOT reflected in the parent — processes have independent memory.",
+    memoryAnchor:
+      "Multiprocessing = opening separate restaurant branches. Each branch (process) has its own kitchen, staff, and inventory. No shared stove fights, but shipping ingredients between branches (pickling) is expensive.",
   },
 
   // ── Data Structures ───────────────────────────────────────────────────────────
@@ -500,6 +538,8 @@ export const concepts: Concept[] = [
       "Python lists are dynamic arrays — O(1) append amortized, O(1) index. Insertion/deletion in the middle is O(n) due to shifting. Search is O(n). For a deque (fast append/pop from both ends), use collections.deque — O(1) both ends. For sorted data with binary search, use the bisect module. Timsort makes list.sort() extremely fast on partially-sorted data, which is common in practice.",
     trap:
       "list.insert(0, x) is O(n) — it shifts every element. If you need a queue (FIFO), use collections.deque, not a list. list.pop(0) is also O(n).",
+    memoryAnchor:
+      "A Python list is like a row of people on a bench. Adding someone to the end is easy (scoot over). Inserting at the front? Everyone has to stand up and shift one seat right.",
   },
   {
     id: "dict-internals",
@@ -515,6 +555,8 @@ export const concepts: Concept[] = [
       "Python dicts are hash tables with O(1) average operations. They preserve insertion order since Python 3.7. Keys must be hashable — defining __eq__ without __hash__ makes a type unhashable. For counting, use Counter. For missing-key defaults, use defaultdict. For ordered operations like LRU cache, OrderedDict has move_to_end(). The dict resize happens at ~2/3 capacity — keep this in mind if you're pre-sizing a dict for performance.",
     trap:
       "Modifying a dict while iterating over it raises RuntimeError. Iterate over list(d.keys()) or list(d.items()) if you need to delete during iteration.",
+    memoryAnchor:
+      "A dict is a coat check room. You hand over your hashable ticket (key), and they instantly find your coat (value). Since Python 3.7, coats hang in the order they arrived.",
   },
   {
     id: "collections-module",
@@ -530,6 +572,8 @@ export const concepts: Concept[] = [
       "collections is one of the most useful standard library modules in interviews. Counter for frequency counting in O(n). defaultdict to eliminate boilerplate. deque for O(1) queue operations. I use collections.deque(maxlen=N) for sliding window problems — it automatically evicts old elements. namedtuple for lightweight value objects. Knowing these lets you write cleaner, more efficient code than with just list and dict.",
     trap:
       "Counter['missing_key'] returns 0, not KeyError. This is intentional and useful, but be careful if you're checking for key presence — 'key' in counter is the correct check, not counter['key'].",
+    memoryAnchor:
+      "collections = the specialty aisle in the grocery store. deque is a double-ended conveyor belt, Counter is a tally clicker, defaultdict is a vending machine that auto-stocks when empty.",
   },
 
   // ── Protocols & Type System ───────────────────────────────────────────────────
@@ -547,6 +591,8 @@ export const concepts: Concept[] = [
       "The iterator protocol is __iter__ + __next__. Iterables have __iter__ that returns an iterator — they can produce multiple independent iterations. Iterators are single-pass (hold position state). Generators implement the protocol automatically. This protocol powers for loops, list comprehensions, unpacking, and itertools. When building a custom collection, implement __iter__ to return an independent iterator so multiple independent loops can traverse it simultaneously.",
     trap:
       "A generator is both an iterable AND an iterator — iter(gen) returns gen itself. This means you can't restart a generator by calling iter() on it again — you get the same exhausted object.",
+    memoryAnchor:
+      "Iterator protocol = a TV remote with two buttons: __iter__ (turn on) and __next__ (next channel). StopIteration = you hit the last channel. A list is a DVR (rewind anytime); a generator is live TV (one pass only).",
   },
   {
     id: "context-manager",
@@ -562,6 +608,8 @@ export const concepts: Concept[] = [
       "Context managers guarantee cleanup via __enter__/__exit__, even on exceptions. with statements call __exit__ regardless of how the block exits. I use contextlib.contextmanager to write them as generators — much cleaner than a full class. The pattern is: setup, yield, cleanup in a try/finally. Common uses: database transactions (commit or rollback), file locks, temporary directories, mocking in tests. __exit__ can suppress exceptions by returning True.",
     trap:
       "contextlib.contextmanager functions must have exactly one yield. If an exception occurs in the with body, it's re-raised at the yield point — handle it with try/except around the yield if you want to react to it.",
+    memoryAnchor:
+      "Context manager = a responsible babysitter. __enter__ = babysitter arrives, __exit__ = babysitter cleans up toys before leaving, NO MATTER WHAT happened (even if the kid threw a tantrum/exception).",
   },
   {
     id: "type-hints",
@@ -577,6 +625,8 @@ export const concepts: Concept[] = [
       "Type hints are documentation that tools can verify. I use them for public APIs and complex logic — they make intent explicit and catch bugs with mypy/pyright before runtime. Optional[X] means 'X or None'. For structural typing (duck typing + static checks), use Protocol instead of ABC — a class satisfies a Protocol by having the right methods, no inheritance needed. This aligns with Python's duck-typing philosophy while adding static safety.",
     trap:
       "Type hints are NOT enforced at runtime. def f(x: int): pass; f('hello') runs fine. Use a runtime validation library (pydantic, beartype) if you need runtime enforcement. Also, using isinstance() checks for type hints at runtime is almost always wrong — that's what the static checker is for.",
+    memoryAnchor:
+      "Type hints = sticky notes on your fridge saying 'milk goes here.' Python won't stop you from putting juice there — it's just a suggestion. mypy is the roommate who actually reads the notes and yells at you.",
   },
 ];
 

@@ -442,6 +442,8 @@ const concepts: Concept[] = [
       "The JVM uses a parent-delegation model: each ClassLoader delegates to its parent before trying to load a class itself, ensuring core JDK classes cannot be overridden by user code. Classes are uniquely identified by their name plus the ClassLoader that defined them — the same .class file loaded by two different ClassLoaders produces two incompatible types. This is why application servers isolate each deployed app with its own ClassLoader and why ClassLoader leaks cause Metaspace OOMs when classes can't be unloaded.",
     trap:
       "Two classes with the same fully-qualified name loaded by different ClassLoaders are NOT the same type — casting between them throws ClassCastException even though the bytecode is identical.",
+    memoryAnchor:
+      "ClassLoader = bouncer chain at a nightclub. Each bouncer asks the bouncer above them first: 'Do you know this person?' Only if no parent recognizes you does the local bouncer check the list.",
   },
   {
     id: "jit-compilation",
@@ -457,6 +459,8 @@ const concepts: Concept[] = [
       "HotSpot uses tiered compilation: bytecode is first interpreted, then compiled by C1 for fast startup, and finally by C2 with aggressive optimizations (inlining, escape analysis) for peak throughput. The JIT can deoptimize and fall back to interpreted mode if optimistic assumptions — like a call site being monomorphic — are violated at runtime. This is why JVM applications exhibit a warm-up curve and why load testing must include ramp-up time.",
     trap:
       "Microbenchmarks that don't use JMH (Java Microbenchmark Harness) are often invalidated by JIT dead-code elimination or incomplete warm-up — the JVM may optimize away your benchmark entirely if results are unused.",
+    memoryAnchor:
+      "JIT = a chef who watches which dishes customers order most, then pre-preps those ingredients. Cold start is the first morning rush; warm-up is the chef learning the popular orders.",
   },
   {
     id: "bytecode",
@@ -472,6 +476,8 @@ const concepts: Concept[] = [
       "Java compiles to stack-based bytecode that is platform-neutral. The JVM runtime is divided into heap (objects, GC-managed), Metaspace (class metadata, outside heap since Java 8), and per-thread areas: JVM stack (stack frames with local vars and operand stack) and PC register. Key bytecode instruction families are invokevirtual for instance methods, invokestatic for static methods, invokeinterface for interface calls, and invokedynamic for lambdas and runtime-linked dispatch.",
     trap:
       "PermGen was replaced by Metaspace in Java 8 — PermGen OOM errors no longer exist, but Metaspace can still OOM if class loading is unbounded (e.g., CGLib proxy generation loops) unless -XX:MaxMetaspaceSize is set.",
+    memoryAnchor:
+      "Bytecode = universal recipe card. The JVM kitchen (any OS) can cook it. Stack = each chef's personal cutting board. Heap = the shared pantry. Metaspace = the recipe binder on the shelf.",
   },
 
   // ── Core Java ────────────────────────────────────────────────────────────
@@ -489,6 +495,8 @@ const concepts: Concept[] = [
       "String literals are automatically interned into the JVM's string pool (heap-resident since Java 7). Two literals with the same content are == equal because they reference the same pooled object, but new String(\"x\") allocates a new heap object that is != the pooled one. Always use .equals() for string value comparison. String.intern() manually adds a string to the pool and returns the canonical reference — useful for deduplication, but has throughput cost under contention.",
     trap:
       "\"abc\" == \"abc\" is true (both are pooled literals), but new String(\"abc\") == \"abc\" is false — this trips up developers who compare strings with == and only test with literal values in unit tests.",
+    memoryAnchor:
+      "String Pool = a hotel lost-and-found box. Identical umbrellas share one slot. But 'new String()' is buying a brand-new umbrella even though an identical one is already in the box.",
   },
   {
     id: "equals-hashcode",
@@ -504,6 +512,8 @@ const concepts: Concept[] = [
       "The contract is: if a.equals(b) is true, then a.hashCode() must equal b.hashCode(). The inverse is not required — hash collisions are legal. Breaking this contract causes silent data loss in hash-based collections: put() uses hashCode() to find the bucket, then equals() to find the key. If hashCode() is inconsistent with equals(), gets and removes miss the stored entry. You must override both methods together — never just one.",
     trap:
       "Overriding equals() without overriding hashCode() (or vice versa) compiles fine and produces no runtime error until you use the class in a HashMap or HashSet, at which point objects appear to vanish.",
+    memoryAnchor:
+      "equals/hashCode = filing cabinet system. hashCode picks the drawer (bucket), equals checks the exact folder inside. If two identical files land in different drawers, you'll never find the duplicate.",
   },
   {
     id: "immutability",
@@ -519,6 +529,8 @@ const concepts: Concept[] = [
       "Immutable classes must be final, have all private final fields, set all state in the constructor, and defensively copy any mutable inputs and outputs. The JMM's final field freeze guarantee means a thread that reads an object reference through any publication mechanism will see the fully initialized final fields without synchronization. This is why immutable objects are the safest currency for concurrent code — no locks, no races.",
     trap:
       "Making a field final does not make a mutable object it points to immutable — final List<String> means the reference can't change, but the list contents can be freely modified.",
+    memoryAnchor:
+      "Immutable object = a message carved in stone. You can pass the stone tablet around to anyone safely -- nobody can secretly change the words. Mutable = a whiteboard anyone can erase.",
   },
   {
     id: "static-initializers",
@@ -534,6 +546,8 @@ const concepts: Concept[] = [
       "Static initializer blocks run once at class initialization time and are guaranteed by the JVM to be executed by exactly one thread (others block), making them thread-safe. A static initializer that throws will put the class in a permanently failed state — ExceptionInInitializerError is thrown on first access and NoClassDefFoundError on all subsequent accesses. The initialization-on-demand holder pattern exploits this guarantee for zero-overhead lazy singleton initialization.",
     trap:
       "If a static initializer throws a RuntimeException, the class can never be initialized again in that JVM run — subsequent attempts throw NoClassDefFoundError, not the original exception, making debugging confusing.",
+    memoryAnchor:
+      "Static initializer = the 'grand opening' ribbon-cutting for a store. Happens exactly once, before any customer enters. If the ribbon-cutting catches fire, the store is permanently condemned.",
   },
 
   // ── OOP ──────────────────────────────────────────────────────────────────
@@ -551,6 +565,8 @@ const concepts: Concept[] = [
       "Abstract classes allow shared state, constructors, and access modifiers on members — use them for 'is-a' relationships with shared implementation. Interfaces define contracts and, since Java 8, can provide default implementations for backward compatibility. The key practical difference: a class can implement many interfaces but extend only one abstract class. For new API design, prefer interfaces (gives implementors flexibility); use abstract classes when you need to enforce initialization or share significant implementation.",
     trap:
       "Adding a default method to a widely-used interface is both source- and binary-compatible, but can be behaviorally incompatible: if a class already has a method with the same signature, the class method wins by JLS resolution rules, so the default method is silently ignored — the semantics may diverge from what the interface author intended.",
+    memoryAnchor:
+      "Abstract class = a partially built house (has walls, plumbing, rooms). Interface = a building code (rules to follow, no bricks). You can follow many codes but only inherit one house.",
   },
   {
     id: "sealed-classes",
@@ -566,6 +582,8 @@ const concepts: Concept[] = [
       "Sealed classes let you declare all permitted subtypes at compile time, enabling the compiler to enforce exhaustive pattern matching. This is the Java way to express algebraic sum types — useful for modeling things like Result<T> (Ok | Err), event hierarchies, or AST nodes where you own all variants. In Java 21+, switch expressions over sealed types with pattern matching eliminate boilerplate instanceof chains and make illegal states unrepresentable.",
     trap:
       "Sealed classes only restrict direct subclassing — a non-sealed permitted subclass can itself be freely extended, breaking the exhaustiveness guarantee.",
+    memoryAnchor:
+      "Sealed class = a VIP guest list at a party. Only the names on the 'permits' list can get in. The compiler is the bouncer who checks every switch-case against the guest list -- no default needed if everyone's accounted for.",
   },
   {
     id: "covariant-return",
@@ -581,6 +599,8 @@ const concepts: Concept[] = [
       "Covariant return types let an overriding method return a subtype of the parent's declared return type. The compiler inserts synthetic bridge methods so older callers expecting the wider type still work. This is most visible in clone() overrides (returning the concrete class instead of Object) and builder patterns. It does not violate LSP because any code that expects the supertype still gets a valid instance of it.",
     trap:
       "Covariant return types are a source-level feature only — if you load bytecode compiled with an old JDK, bridge methods ensure binary compatibility, but mixing source and bytecode with mismatched expectations can cause verify errors.",
+    memoryAnchor:
+      "Covariant return = a restaurant menu that says 'returns Dessert,' but the subclass kitchen always serves Chocolate Cake specifically. You asked for dessert, you got something better -- still dessert, just more specific.",
   },
   {
     id: "final-keyword",
@@ -596,6 +616,8 @@ const concepts: Concept[] = [
       "final has three distinct uses: a final variable can be assigned exactly once (enabling effectively-final in lambdas); a final method cannot be overridden, enabling JIT inlining without speculative deoptimization; a final class cannot be subclassed, which (combined with private final fields) is the foundation of immutability. The JMM's final field freeze guarantee is critical for safe concurrent publication of immutable objects — no synchronization required if all shared fields are final.",
     trap:
       "final on a reference type variable means the reference cannot be reassigned, not that the referenced object is immutable — final List<String> list still allows list.add(\"x\").",
+    memoryAnchor:
+      "final = superglue. On a variable: the label is glued to one jar (can't point elsewhere, but jar contents can change). On a method: glued shut, no override. On a class: glued the family tree -- no children allowed.",
   },
 
   // ── Concurrency ───────────────────────────────────────────────────────────
@@ -613,6 +635,8 @@ const concepts: Concept[] = [
       "volatile guarantees visibility (writes are flushed to main memory, reads bypass CPU cache) and prevents specific instruction reorderings, establishing a happens-before relationship between a write and subsequent reads of that variable. It does NOT provide atomicity — use AtomicInteger or synchronized for compound read-modify-write operations. The canonical use case is a boolean stop flag: one thread sets volatile boolean stopped = true; the worker thread's while (!stopped) loop will eventually see it without synchronization.",
     trap:
       "double-checked locking without volatile is broken — without it, the JVM can reorder the constructor call and the reference assignment, allowing another thread to see a non-null but partially constructed object.",
+    memoryAnchor:
+      "volatile = a town crier who shouts every update to the whole village. Everyone hears the news (visibility), but two criers can still shout at the same time and garble the message (no atomicity).",
   },
   {
     id: "synchronized-reentrantlock",
@@ -628,6 +652,8 @@ const concepts: Concept[] = [
       "synchronized is simpler and automatically releases on block exit (including exceptions), but offers only one wait set and no timeout. ReentrantLock gives you tryLock(), timed and interruptible acquisition, fairness options, and multiple Condition queues — necessary for producer-consumer with separate 'not full' and 'not empty' conditions. Always unlock ReentrantLock in a finally block. With Java 21 virtual threads, prefer ReentrantLock over synchronized to avoid pinning the carrier thread.",
     trap:
       "Forgetting to unlock a ReentrantLock in an exception path (by not using try/finally) leaves the lock permanently held and deadlocks all threads waiting for it — synchronized never has this problem.",
+    memoryAnchor:
+      "synchronized = automatic bathroom door lock (unlocks when you leave, even if you faint). ReentrantLock = a padlock you carry -- more features (timed, interruptible), but forget to unlock and everyone waits forever.",
   },
   {
     id: "executor-service",
@@ -643,6 +669,8 @@ const concepts: Concept[] = [
       "ExecutorService decouples task submission from thread management. For production, construct ThreadPoolExecutor explicitly with a bounded queue (e.g., ArrayBlockingQueue) and a RejectedExecutionHandler to prevent unbounded task accumulation. Fixed-size pools with LinkedBlockingQueue are the most common source of silent OOM bugs — the queue grows without bound when consumers are slower than producers. Always call shutdown() in a finally block or via try-with-resources (Java 19+ AutoCloseable) to prevent thread leaks.",
     trap:
       "Executors.newFixedThreadPool(n) uses an unbounded queue — if producers outpace consumers, the queue grows without bound and causes OutOfMemoryError, not backpressure.",
+    memoryAnchor:
+      "Thread pool = a restaurant kitchen with a fixed number of chefs. Tasks are orders on the ticket rail. An unbounded queue is a ticket rail that stretches to infinity -- eventually the kitchen drowns in paper.",
   },
   {
     id: "completable-future",
@@ -658,6 +686,8 @@ const concepts: Concept[] = [
       "CompletableFuture enables non-blocking async pipelines: thenApply() transforms results, thenCompose() chains async steps (avoiding nested futures), exceptionally() or handle() manages errors. The critical operational gotcha: without specifying an executor, callbacks run on the ForkJoinPool common pool — blocking inside a callback starves the pool for other tasks. Always pass an explicit executor to *Async methods in production code and handle exceptions explicitly, as unhandled CompletableFuture exceptions are silently swallowed.",
     trap:
       "Unhandled exceptions in CompletableFuture stages are silently swallowed unless you call get()/join() or attach an exceptionally()/whenComplete() handler — the exception disappears and the future stays permanently incomplete.",
+    memoryAnchor:
+      "CompletableFuture = a promise note chain. thenApply = 'when pizza arrives, add cheese.' thenCompose = 'when pizza arrives, order dessert too.' Errors vanish into a black hole unless you attach an exceptionally() safety net.",
   },
   {
     id: "cas-atomic",
@@ -673,6 +703,8 @@ const concepts: Concept[] = [
       "CAS is the foundation of all lock-free concurrency in Java — it atomically tests-and-sets a memory location using a single CPU instruction (CMPXCHG on x86). AtomicInteger wraps CAS in a retry loop for common operations. Under low contention it outperforms synchronized; under high contention, LongAdder is superior because it stripes state across cells. The ABA problem — where a value changes A→B→A and CAS falsely succeeds — requires AtomicStampedReference when object identity matters (e.g., lock-free stack pop).",
     trap:
       "CAS spin-loops under high contention cause CPU waste and can be slower than a mutex — use LongAdder for high-frequency counter increments, not AtomicLong.incrementAndGet().",
+    memoryAnchor:
+      "CAS = picking up the last donut: 'I see a glazed donut, I'll grab it -- but only if it's still glazed when my hand arrives.' If someone swapped it, you pull back and try again. ABA = someone replaced it with an identical donut.",
   },
   {
     id: "threadlocal",
@@ -688,6 +720,8 @@ const concepts: Concept[] = [
       "ThreadLocal gives each thread its own slot for a value — used for per-thread caching of non-thread-safe objects (e.g., SimpleDateFormat) or passing context implicitly down a call stack without method parameters (Spring's TransactionSynchronizationManager). The critical operational rule: always call ThreadLocal.remove() when done, especially in thread pools, to prevent memory leaks and cross-request data contamination. ThreadLocalMap's WeakReference key prevents leak of the ThreadLocal itself, but not of the value.",
     trap:
       "In a thread pool, failing to call ThreadLocal.remove() means the next request handled by that thread inherits the previous request's data — a security and correctness bug that only manifests under load when threads are reused.",
+    memoryAnchor:
+      "ThreadLocal = a personal locker at a gym. Each thread gets its own locker. But in a thread pool, threads are reused like rental lockers -- if you don't clean yours out, the next renter finds your sweaty towel.",
   },
 
   // ── Collections ───────────────────────────────────────────────────────────
@@ -705,6 +739,8 @@ const concepts: Concept[] = [
       "HashMap uses an array of buckets where each bucket is a linked list that treeifies to a red-black tree at size 8 (reverts at 6). Resize triggers when occupancy exceeds capacity × 0.75 — doubles the array and rehashes all entries. A good hashCode() is critical: poor distribution fills a few buckets deeply, degrading O(1) gets to O(n) (or O(log n) after treeify). HashMap is not thread-safe — use ConcurrentHashMap for concurrent access; synchronized access during iteration still risks ConcurrentModificationException.",
     trap:
       "Using a mutable object as a HashMap key and then mutating it changes its hashCode(), which means the map can no longer find the entry — it's effectively lost in the map (a silent memory leak).",
+    memoryAnchor:
+      "HashMap = a post office with numbered P.O. boxes. hashCode picks the box number, the linked list is mail inside. Treeify at 8 = when one box overflows, it gets upgraded to a sorted filing cabinet.",
   },
   {
     id: "concurrent-hashmap",
@@ -720,6 +756,8 @@ const concepts: Concept[] = [
       "ConcurrentHashMap achieves high concurrency via CAS for empty-bucket puts and synchronized on only the bucket head for occupied buckets — multiple threads write different buckets simultaneously. synchronizedMap wraps every operation in a single lock, serializing all access. Prefer ConcurrentHashMap for concurrent use. The gotcha: iterating a synchronizedMap still requires external locking on the map object; ConcurrentHashMap's iterators are weakly consistent (reflect state at some point during iteration, no ConcurrentModificationException).",
     trap:
       "ConcurrentHashMap.size() does not reflect a snapshot — under concurrent modification it returns an approximation. Conditional logic like if (map.size() == 0) ... is a race condition; use map.isEmpty() or isEmpty() inside a compute() for correctness.",
+    memoryAnchor:
+      "synchronizedMap = one giant padlock on the entire warehouse door (everyone waits). ConcurrentHashMap = individual locks on each aisle -- shoppers in different aisles never block each other.",
   },
   {
     id: "arraylist-vs-linkedlist",
@@ -735,6 +773,8 @@ const concepts: Concept[] = [
       "In theory LinkedList has O(1) insert/remove at known positions vs ArrayList's O(n). In practice ArrayList almost always wins due to cache locality — contiguous array memory is prefetched efficiently by CPUs, while LinkedList's scattered nodes cause cache misses on every traversal. Use ArrayList as the default; LinkedList only when you have a persistent iterator pointing to the insert location and are doing many such operations. For queue semantics, use ArrayDeque.",
     trap:
       "Calling LinkedList.get(index) is O(n) — the list traverses from the head or tail each time. A loop that calls get(i) in a for loop over a LinkedList is O(n²).",
+    memoryAnchor:
+      "ArrayList = a bookshelf with numbered slots (instant access by position). LinkedList = a treasure hunt where each clue points to the next. Fast to insert a clue mid-chain, but finding clue #50 means following 49 clues first.",
   },
   {
     id: "fail-fast-iterators",
@@ -750,6 +790,8 @@ const concepts: Concept[] = [
       "Fail-fast iterators throw ConcurrentModificationException when the collection's structure changes between iterator creation and use. The implementation uses a modCount field — the iterator checks it on each operation. Safe removal requires Iterator.remove(), not Collection.remove(). For multi-threaded scenarios, fail-fast is not a reliable safety mechanism — use ConcurrentHashMap or CopyOnWriteArrayList whose iterators are weakly consistent or snapshot-based respectively.",
     trap:
       "Calling collection.remove(object) inside a for-each loop throws ConcurrentModificationException, but calling Iterator.remove() inside a manual Iterator loop does not — the for-each loop uses an iterator internally, and external remove() increments modCount without updating the iterator's expectedModCount.",
+    memoryAnchor:
+      "Fail-fast iterator = a librarian reading a shelf aloud. If someone sneaks in and removes a book mid-reading, the librarian screams (ConcurrentModificationException). Only the librarian herself can remove books safely (Iterator.remove()).",
   },
 
   // ── Spring ────────────────────────────────────────────────────────────────
@@ -767,6 +809,8 @@ const concepts: Concept[] = [
       "Spring's IoC container creates and wires beans based on configuration (annotations, XML, or Java config). Prefer constructor injection: it makes dependencies explicit, enables immutable beans, and causes fast startup failure when a dependency is missing. @Autowired by type first, then by name (@Qualifier) if multiple candidates exist. Singleton scope means one instance is shared across the application — stateful fields in singleton beans are a concurrency hazard. Use prototype scope for stateful beans that must be independent per consumer.",
     trap:
       "Injecting a prototype-scoped bean into a singleton bean defeats prototype semantics — the singleton holds one reference that never changes. Use ApplicationContext.getBean(), a Provider<T>, or @Lookup to get a fresh prototype on each use.",
+    memoryAnchor:
+      "IoC = a restaurant where you don't cook; you just say 'I need pasta' and the kitchen (Spring container) delivers it to your table. DI = the waiter bringing you ingredients you listed on the menu, not you raiding the fridge.",
   },
   {
     id: "spring-transactional",
@@ -782,6 +826,8 @@ const concepts: Concept[] = [
       "@Transactional works via AOP proxies — Spring intercepts calls to annotated methods from outside the bean. Self-invocation (this.method()) bypasses the proxy and ignores @Transactional. REQUIRES_NEW suspends the current transaction and opens a new one — changes in the inner transaction commit/rollback independently; this is useful for audit logging that must persist even if the outer transaction rolls back. By default, only unchecked exceptions trigger rollback; add rollbackFor = Exception.class to rollback on checked exceptions.",
     trap:
       "@Transactional on a private method is silently ignored — the proxy cannot intercept private calls. It must be on a public method of a Spring bean, called from outside the bean.",
+    memoryAnchor:
+      "@Transactional = a bodyguard at your office door who handles all visitors. Self-invocation (this.method()) is sneaking through the back door -- the bodyguard never sees you, so no transaction protection kicks in.",
   },
   {
     id: "spring-aop",
@@ -797,6 +843,8 @@ const concepts: Concept[] = [
       "Spring AOP wraps beans in JDK dynamic proxies (interface-based) or CGLIB proxies (subclass-based) at runtime. Interception only works for calls that go through the proxy — calls from outside the bean. Internal self-calls skip the proxy. CGLIB cannot proxy final classes or override final methods — those escape all AOP advice. @Around advice is the most powerful: it controls invocation via ProceedingJoinPoint.proceed() and can modify arguments, return values, or suppress the call entirely.",
     trap:
       "If a Spring bean's class is final (e.g., a Kotlin data class by default), CGLIB cannot subclass it — Spring fails to create the proxy and the @Transactional/@Async/@Cacheable annotations on it are silently ignored. Mark Kotlin classes open or use the allopen plugin.",
+    memoryAnchor:
+      "AOP Proxy = a stunt double who intercepts all incoming calls and adds special effects (logging, transactions) before passing to the real actor. Self-calls skip the stunt double entirely -- the actor talks to themselves, no special effects.",
   },
   {
     id: "spring-async",
@@ -812,6 +860,8 @@ const concepts: Concept[] = [
       "@Async dispatches the annotated method to a thread pool (configure a custom ThreadPoolTaskExecutor — the default creates a new thread per call and is unsuitable for production). Self-invocation bypasses the proxy, so the method runs synchronously. Exceptions from void @Async methods are silently swallowed without an AsyncUncaughtExceptionHandler. The Spring SecurityContext is not automatically inherited by async threads — explicitly propagate it via DelegatingSecurityContextRunnable or a custom executor decorator.",
     trap:
       "Calling an @Async method on this (self-call) within the same bean executes synchronously — no new thread is created, no proxy intercepts the call — and there is no compile-time or runtime warning.",
+    memoryAnchor:
+      "@Async = dropping a letter in a mailbox for later delivery. But self-invocation is handing the letter to yourself -- you just read it immediately. No mailman, no async, no new thread.",
   },
 
   // ── Memory & GC ───────────────────────────────────────────────────────────
@@ -829,6 +879,8 @@ const concepts: Concept[] = [
       "The heap has Young Generation (Eden + two Survivors) for new objects and Old Generation for long-lived ones. Minor GC uses stop-the-world copying within Young — fast and frequent. Major/Full GC is slower and stops all threads longer. Objects are promoted to Old after surviving multiple minor GCs (threshold configurable, default 15). In G1, the heap is equal-sized regions dynamically assigned to generations — G1 targets a configurable pause time by selecting the highest-garbage regions to collect first.",
     trap:
       "Allocating many large objects (> half a G1 region) places them as Humongous objects in Old Generation, bypassing Young GC entirely — they accumulate until a Full GC, causing unexpected long pauses.",
+    memoryAnchor:
+      "Heap = a nursery (Young) and retirement home (Old). New objects are born in the nursery (Eden). Survivors graduate through toddler rooms (Survivor spaces). Only the toughest make it to the retirement home. Metaspace is the staff office -- outside the building.",
   },
   {
     id: "gc-algorithms",
@@ -844,6 +896,8 @@ const concepts: Concept[] = [
       "G1 is the default GC — region-based with configurable pause targets, good for multi-GB heaps where you want predictable but not ultra-low pauses. ZGC (Java 15+) does nearly all work concurrently using colored pointers and load barriers, achieving sub-millisecond pauses at multi-TB heap sizes — use it for latency-critical services. Parallel GC maximizes throughput for batch workloads at the cost of longer stop-the-world pauses. Tune GC with -Xmx, -Xms, and -XX:MaxGCPauseMillis; monitor with GC logs (-Xlog:gc*).",
     trap:
       "Setting -Xmx and -Xms to the same value prevents heap resizing (good for predictability) but means the JVM requests max memory from the OS immediately — in containerized environments this can trigger OOM kills if other processes share the host.",
+    memoryAnchor:
+      "G1 = a cleaning crew that tackles the messiest rooms first (Garbage-First). ZGC = a Roomba that cleans while you walk around -- you barely notice it (sub-ms pauses). Parallel GC = shutting down the whole house for a deep clean (max throughput, longest pause).",
   },
   {
     id: "reference-types",
@@ -859,6 +913,8 @@ const concepts: Concept[] = [
       "SoftReferences are collected only under memory pressure — ideal for in-memory caches that should yield memory to prevent OOM. WeakReferences are collected at the next GC — used in WeakHashMap where entries should automatically expire when the key is no longer referenced. PhantomReferences are for post-GC cleanup actions (replacing the deprecated finalize()) — register a Cleaner action that runs after the object is collected, with no risk of object resurrection. All three integrate with ReferenceQueue for cleanup notification.",
     trap:
       "WeakHashMap keys must be objects with identity-based equality (not Strings or other interned/cached objects) — interned strings are always strongly referenced by the string pool, so WeakHashMap<String, V> entries are never collected.",
+    memoryAnchor:
+      "Strong ref = holding a dog on a leash. Soft ref = a sticky note on the fridge (removed only when you need fridge space). Weak ref = writing a name in sand (gone at the next wave/GC). Phantom ref = a ghost that haunts the ReferenceQueue after death.",
   },
 
   // ── Generics & Types ──────────────────────────────────────────────────────
@@ -876,6 +932,8 @@ const concepts: Concept[] = [
       "Java generics are compile-time only — type parameters are erased to their bounds (usually Object) in bytecode. This means you can't instantiate a generic type parameter (new T()), check instanceof with a parameterized type (x instanceof List<String>), or create generic arrays (new T[]). Unchecked casts are inserted by the compiler at usage sites. The upside: generics are backward-compatible with pre-Java-5 raw type code. Use TypeToken or Class<T> tokens when you need runtime type information.",
     trap:
       "Overloading methods that differ only by generic type parameter (void process(List<String>) and void process(List<Integer>)) causes a compile error — after erasure both have the same signature void process(List).",
+    memoryAnchor:
+      "Type erasure = wearing a name tag at a costume party, but the bouncer rips off all tags at the door. Inside the party (runtime), List<String> and List<Integer> are both just 'List' -- nobody remembers who's who.",
   },
   {
     id: "wildcards",
@@ -891,6 +949,8 @@ const concepts: Concept[] = [
       "PECS (Producer Extends, Consumer Super) guides wildcard choice: use ? extends T to read from a generic collection (you get T or a subtype — safe to read, unsafe to write because you don't know the exact type). Use ? super T to write into it (you know at minimum T can be stored — safe to write, only Object can be safely read). This is why Collections.copy(dst, src) is copy(List<? super T> dst, List<? extends T> src). Prefer bounded wildcards in public APIs to maximize flexibility for callers.",
     trap:
       "You cannot add anything (except null) to a List<? extends Number> — the compiler cannot verify type safety for the specific unknown subtype, so all adds are rejected at compile time.",
+    memoryAnchor:
+      "PECS = 'Producer Extends, Consumer Super.' Think of a fruit bowl: '? extends Fruit' = you can TAKE fruit out (produce/read), but can't put any in (is it an Apple bowl or Orange bowl?). '? super Apple' = you can PUT apples in (consume/write), but what you take out is just 'Object.'",
   },
 ];
 

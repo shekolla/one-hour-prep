@@ -20,6 +20,7 @@ export interface Concept {
   deep: string;
   interviewAnswer: string;
   trap: string;
+  memoryAnchor?: string;
 }
 
 export interface CategoryMeta {

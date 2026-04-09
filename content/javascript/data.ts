@@ -425,6 +425,8 @@ const concepts: Concept[] = [
       "The call stack is a LIFO structure tracking active function calls in a single-threaded JS runtime. Each invocation pushes a new execution context; return pops it. When the stack is empty, the event loop picks the next task. Stack overflow happens when recursion is too deep — the fix is either iteration or trampolining.",
     trap:
       "Async functions do NOT block the call stack — await suspends the async function and releases control back to the event loop, allowing other code to run. Many engineers think await 'blocks' like a sleep, which leads to misunderstanding why UI stays responsive during await.",
+    memoryAnchor:
+      "The call stack is a stack of plates at a buffet — you can only wash (execute) the top plate. Drop a plate (error) and everything above it crashes down until someone catches it.",
   },
   {
     id: "microtask-queue",
@@ -440,6 +442,8 @@ const concepts: Concept[] = [
       "The microtask queue is drained completely after every task — all Promise .then callbacks run before any setTimeout callback, even with 0ms. This matters for ordering guarantees: anything you need to run 'immediately after this synchronous block' should use Promise.resolve().then() or queueMicrotask(), not setTimeout(fn, 0).",
     trap:
       "In Node.js, process.nextTick callbacks run before Promise microtasks — this is a Node-specific deviation from the browser's event loop model. Code relying on nextTick vs Promise ordering will behave differently in browser environments.",
+    memoryAnchor:
+      "Microtasks are VIP guests who cut the line — after each regular guest (macrotask) is served, ALL VIPs jump in and get served before the next regular guest, even if more VIPs keep showing up.",
   },
   {
     id: "macrotask-queue",
@@ -455,6 +459,8 @@ const concepts: Concept[] = [
       "The event loop picks exactly one macrotask per iteration, then drains all microtasks before the next one. setTimeout/setInterval, I/O callbacks, and UI events are all macrotasks. The practical implication: you can split a long computation into setTimeout(fn, 0) chunks to yield to the UI, but Promise chains between those chunks will all resolve before the next chunk runs.",
     trap:
       "setTimeout(fn, 0) is not guaranteed to fire in 0ms — browsers enforce a minimum delay (~4ms for nested timers) and the callback only fires when the call stack is empty AND no microtasks are pending. Under heavy microtask load, a 0ms timer can wait significantly longer.",
+    memoryAnchor:
+      "Macrotasks are the regular waiting room at the DMV — only one person is called per round, and those VIP microtask folks always cut in between.",
   },
   {
     id: "event-loop-tick",
@@ -470,6 +476,8 @@ const concepts: Concept[] = [
       "The canonical event loop order is: run current task → drain microtask queue → (browser: rendering step if needed) → pick next macrotask. This means Promise chains always complete before setTimeout(fn, 0) fires. requestAnimationFrame sits between microtasks and the next macrotask in browsers, making it the right tool for synchronizing with the rendering pipeline.",
     trap:
       "requestAnimationFrame is not a macrotask and not a microtask — it runs as part of the browser's rendering step. Putting animation logic in setTimeout is wrong because it's not synchronized with the display refresh rate, causing jank. Putting it in a Promise chain is wrong because microtasks block rendering.",
+    memoryAnchor:
+      "One event loop tick is like one spin of a washing machine: wash one load (macrotask), rinse ALL the soap out (drain microtasks), optionally hang to dry (render), then grab the next load.",
   },
   // ── Closures & Scope ────────────────────────────────────────────────────────
   {
@@ -486,6 +494,8 @@ const concepts: Concept[] = [
       "A closure is a function bundled with its lexical environment — the variables in scope when the function was defined. They enable private state and encapsulation without classes. The key insight is that closures capture variable bindings (references), not values, which causes the classic loop-with-var bug where all async callbacks see the loop variable's final value.",
     trap:
       "Closures in loops with var are perhaps the most common JavaScript interview trap. var is function-scoped, so all iterations share one binding. Using let creates a new binding per iteration. The IIFE fix works but is outdated — in modern code, always prefer let/const in loops.",
+    memoryAnchor:
+      "A closure is a backpack that a function carries everywhere — inside the backpack are all the variables from where it was born, even if that birthplace no longer exists.",
   },
   {
     id: "hoisting",
@@ -501,6 +511,8 @@ const concepts: Concept[] = [
       "var declarations are hoisted to function scope and initialized to undefined — reading them before their line returns undefined, not a ReferenceError. let and const are hoisted to block scope but remain in the Temporal Dead Zone until their declaration is reached — accessing them before throws ReferenceError. Function declarations are fully hoisted: both name and body, so they can be called before they appear in source code.",
     trap:
       "class declarations are subject to the TDZ — you cannot instantiate a class before its declaration in the source, even though it 'looks' like a statement. This surprises engineers who assume class behaves like function declarations.",
+    memoryAnchor:
+      "Hoisting = JS reads your code like a guest list before the party starts. 'var' guests get a name tag (undefined) at the door. 'let/const' guests are on the list but stuck in a velvet-rope TDZ until their name is called.",
   },
   {
     id: "scope-chain",
@@ -516,6 +528,8 @@ const concepts: Concept[] = [
       "JavaScript uses lexical scoping: scope is determined at write time, not call time. When resolving a variable, the engine walks from the innermost scope outward through the scope chain. This is what enables closures — an inner function's scope chain includes the outer function's scope even after the outer function returns.",
     trap:
       "Dynamic scoping (where 'this' goes) is NOT the same as lexical scoping (where variables go). this is determined at call time by the call site; variable names are resolved at compile time via lexical scope. Confusing 'this lookup' with 'variable lookup' is a common mistake.",
+    memoryAnchor:
+      "Scope chain is a series of nested Russian dolls — when looking for a variable, you open the smallest doll first, then the next bigger one, all the way to the giant global doll. The nesting is fixed at write time, not call time.",
   },
   {
     id: "iife",
@@ -531,6 +545,8 @@ const concepts: Concept[] = [
       "An IIFE creates a new function scope immediately on execution, providing private encapsulation without polluting the global scope. It was the foundation of the module pattern in pre-ES6 code. Today, ES modules provide better encapsulation natively, but IIFEs still appear in compiled/bundled output and UMD library wrappers.",
     trap:
       "Forgetting the wrapping parentheses causes a SyntaxError — function() {}() is a statement (function declaration), which can't be immediately invoked. Wrapping in parens or prefixing with ! makes it an expression. Also: IIFEs don't have 'name' by default, making debugging harder — always name your IIFEs: (function myModule() { ... })().",
+    memoryAnchor:
+      "IIFE = a self-destructing message in a spy movie. It runs once, does its job, and its private contents are gone from the outside world forever. The parentheses are the detonator.",
   },
   // ── Prototypes & OOP ────────────────────────────────────────────────────────
   {
@@ -547,6 +563,8 @@ const concepts: Concept[] = [
       "The prototype chain is JavaScript's delegation mechanism for property lookup. When you access a property, the engine checks the object itself, then walks [[Prototype]] links until it finds the property or hits null. Classes use this same mechanism — methods live on the prototype, not on each instance, which saves memory. hasOwnProperty() lets you distinguish own properties from inherited ones.",
     trap:
       "for...in iterates over ALL enumerable properties including inherited ones from the prototype chain. Use Object.keys() for own enumerable properties, or add a hasOwnProperty check inside for...in. This is the source of many subtle bugs when augmenting built-in prototypes like Array.prototype.",
+    memoryAnchor:
+      "Prototype chain = a family tree of sticky notes. You ask the kid for a recipe; if they don't have it, ask mom, then grandma, all the way up. Everyone shares grandma's recipes without making copies.",
   },
   {
     id: "class-syntax",
@@ -562,6 +580,8 @@ const concepts: Concept[] = [
       "ES6 classes are syntactic sugar over prototypes — they don't change the underlying delegation model. Methods defined in a class body go on the prototype and are shared across instances; class fields go on each instance. Private fields (#) are truly private and engine-enforced, unlike the old _underscore convention. Always call super() before accessing this in a derived class constructor.",
     trap:
       "Class methods defined in the class body are on the prototype and are NOT bound — passing them as callbacks will lose this. The fix is either a class field arrow function (which creates a per-instance function) or explicit binding in the constructor. The tradeoff: arrow class fields sacrifice prototype sharing and break method override.",
+    memoryAnchor:
+      "ES6 classes are a fancy suit over the same prototype body. Under the tuxedo, it is still prototype delegation all the way down. The 'class' keyword is just JavaScript dressing up for a job interview.",
   },
   {
     id: "this-binding",
@@ -577,6 +597,8 @@ const concepts: Concept[] = [
       "this is determined by the call site, following four rules in priority: new > explicit (call/apply/bind) > implicit (method call) > default (global/undefined in strict mode). Arrow functions capture this from the enclosing lexical scope at definition time and cannot be rebound. The most common bug is losing this when a method is used as a callback — fix with .bind(), an arrow wrapper, or an arrow class field.",
     trap:
       "Event listeners that use 'this' inside class methods will lose context because the listener is called with this = the DOM element, not the class instance. The idiomatic fix is a class field arrow function: handleClick = () => { ... } — but be aware this creates a new function per instance rather than a shared prototype method.",
+    memoryAnchor:
+      "'this' is like a name tag at a party. It doesn't say who you ARE, it says who INVITED you. new = you made the party, call/apply = someone slaps a specific tag on you, obj.method() = the host tags you, alone = you are 'global nobody'.",
   },
   {
     id: "object-create",
@@ -592,6 +614,8 @@ const concepts: Concept[] = [
       "Object.create(proto) creates an object that delegates to proto via the prototype chain without needing a constructor. It is the most explicit way to set up prototype delegation and is what class extends compiles to under the hood. Object.create(null) is the correct choice for pure dictionary objects since it avoids prototype property collisions.",
     trap:
       "Object.assign(target, source) does a shallow copy of own enumerable properties — it does NOT set up prototype delegation. const child = Object.assign({}, parent) creates an object with copied own properties but child.__proto__ is still Object.prototype, not parent. Use Object.create(parent) for delegation.",
+    memoryAnchor:
+      "Object.create(parent) is adopting a child who inherits the family name and can ask parents for anything. Object.assign is photocopying someone's homework — you get a copy, but no ongoing relationship.",
   },
   // ── Async Patterns ──────────────────────────────────────────────────────────
   {
@@ -608,6 +632,8 @@ const concepts: Concept[] = [
       "Promises provide a composable, chainable way to handle asynchronous results. The executor runs synchronously; .then callbacks always run as microtasks. Chaining works because .then returns a new Promise — throw inside .then produces a rejection, return produces a resolution. The most important thing to know in interviews: Promise chains only catch errors if you have a .catch at the end or a second argument to .then — silently swallowed rejections are a common production bug.",
     trap:
       "Wrapping an existing Promise in a new Promise constructor (the 'deferred anti-pattern') is unnecessary and breaks error propagation: new Promise((resolve) => resolve(existingPromise)) — the outer promise will resolve with the inner promise as its value if done incorrectly. Use Promise.resolve(existingPromise) instead, which returns the existing promise directly.",
+    memoryAnchor:
+      "A Promise is an IOU note from a restaurant kitchen. Pending = order placed. Fulfilled = food arrives. Rejected = 'sorry, we are out of that.' You can chain IOUs: 'when my food arrives, THEN bring dessert.'",
   },
   {
     id: "async-await",
@@ -623,6 +649,8 @@ const concepts: Concept[] = [
       "async/await is Promise syntax sugar that makes async code look synchronous. An async function always returns a Promise; await unwraps a Promise value inline. The key performance gotcha: sequential awaits run operations serially even when they could be parallel — always use Promise.all for independent concurrent operations. Error handling uses try/catch, which works identically to .catch() on a Promise chain.",
     trap:
       "await in a forEach callback does NOT pause the outer async function — Array.forEach is not async-aware. Each callback creates its own async context. Use for...of with await or Promise.all(array.map(async (item) => ...)) to correctly await iterations.",
+    memoryAnchor:
+      "async/await is putting a bookmark in your novel. 'await' = put the book down, go do laundry, come back to the exact page when the dryer buzzes. The story reads top-to-bottom, but you are free between chapters.",
   },
   {
     id: "promise-combinators",
@@ -638,6 +666,8 @@ const concepts: Concept[] = [
       "The four combinators handle different failure modes: Promise.all fails fast on first rejection (use for required parallel dependencies), Promise.allSettled always resolves with all outcomes (use for best-effort parallel), Promise.race settles with the first outcome (use for timeouts), Promise.any resolves with first success (use for redundant sources, fallback patterns). Know which to reach for based on your failure tolerance needs.",
     trap:
       "Promise.all does NOT cancel in-flight promises when one rejects — it merely ignores their results. The other promises continue executing in the background, potentially wasting resources or causing side effects. JavaScript has no native promise cancellation; use AbortController for fetch or a cancellation token pattern for custom async operations.",
+    memoryAnchor:
+      "Promise.all = 'everyone must finish the group project or we all fail.' Promise.race = 'first one to the finish line wins.' Promise.any = 'I just need ONE yes from all these job applications.' Promise.allSettled = 'tell me how everyone did, pass or fail.'",
   },
   {
     id: "error-handling-async",
@@ -653,6 +683,8 @@ const concepts: Concept[] = [
       "Async errors must be explicitly caught — unhandled rejections crash Node.js processes in modern versions. try/catch works with async/await for centralized handling; .catch() chains work for Promise chains. The most insidious bug is a missing await before a Promise-returning call — the error lands in an unhandled rejection instead of the surrounding try/catch.",
     trap:
       "Returning a Promise from inside a try block without awaiting it means the try/catch will NOT catch its rejection — the rejection escapes to the outer scope. Always await Promises inside try blocks if you want their errors caught: try { await fetchData(); } not try { return fetchData(); }.",
+    memoryAnchor:
+      "Async error handling = a safety net under a trapeze artist. No net (no .catch or try/catch) means the performer (rejection) falls and crashes the whole show. In Node 15+, unhandled rejections literally kill the process — the show stops.",
   },
   // ── Types & Coercion ────────────────────────────────────────────────────────
   {
@@ -669,6 +701,8 @@ const concepts: Concept[] = [
       "JavaScript coercion follows ToPrimitive rules: the + operator concatenates if either operand is a string, all other arithmetic coerces to number. Abstract equality (==) coerces per the spec's Abstract Equality Comparison — use === in production to avoid surprises. The most important coercion rules: falsy values are 0, '', null, undefined, NaN, false; [] and {} are truthy despite being 'empty'.",
     trap:
       "[] == false is true but Boolean([]) is true — these are not contradictory but deeply confusing. == triggers ToNumber coercion on [] (gives 0) then compares 0 == 0. Boolean() applies ToBoolean rules where all objects are truthy. This is why if([]) runs the branch, but [] == false is true.",
+    memoryAnchor:
+      "Type coercion is JS playing telephone — you whisper 'five' and by the time it reaches the other end, it has become the number 5, the string '5', or boolean true. The + operator is the worst gossip: sees a string and turns everything into a string.",
   },
   {
     id: "equality",
@@ -684,6 +718,8 @@ const concepts: Concept[] = [
       "Use === by default. The one exception: x == null catches both null and undefined in a single check. === checks type and value without coercion; == applies the Abstract Equality Comparison algorithm which has counterintuitive edge cases. For NaN, use Number.isNaN() since NaN !== NaN. For structural equality of objects, implement a deep-equal function or use a library.",
     trap:
       "Number.isNaN(x) and isNaN(x) behave differently: Number.isNaN only returns true for actual NaN values; global isNaN coerces its argument first (isNaN('hello') === true, Number.isNaN('hello') === false). Always prefer Number.isNaN.",
+    memoryAnchor:
+      "=== is a strict bouncer: 'Are you EXACTLY on the list? Same name, same type?' == is the lazy bouncer: 'Eh, close enough — come in.' NaN is the person who doesn't even recognize themselves in a mirror: NaN !== NaN.",
   },
   {
     id: "typeof-quirks",
@@ -699,6 +735,8 @@ const concepts: Concept[] = [
       "typeof is safe (never throws, even on undeclared variables) but has the famous null bug: typeof null === 'object'. Use === null for null checks, Array.isArray() for arrays, instanceof for class instances. For comprehensive type identification, Object.prototype.toString.call(value) returns reliable '[object Type]' strings that can't be spoofed without Symbol.toStringTag.",
     trap:
       "typeof in the TDZ does NOT save you for let/const — typeof undeclaredLetVar throws ReferenceError during the TDZ. The safety of typeof for undeclared variables only applies to truly undeclared names (not in the current or enclosing scope at all), not to names declared with let/const that haven't been initialized yet.",
+    memoryAnchor:
+      "typeof null === 'object' is JavaScript's original sin from 1995 — a bug so old it has a pension. Think of typeof as a label gun that mislabeled null at the factory and nobody ever recalled it.",
   },
   // ── Modern ES6+ ─────────────────────────────────────────────────────────────
   {
@@ -715,6 +753,8 @@ const concepts: Concept[] = [
       "Generators are functions that can pause execution at yield points and resume later, enabling lazy evaluation, infinite sequences, and custom iteration protocols. They implement both the iterator and iterable protocols. The key advanced use: generators can receive values via next(val), enabling bidirectional communication. Libraries like redux-saga use this for testable async side effect management.",
     trap:
       "A generator function call does NOT execute any of the body — it just creates the generator object. The body runs only when .next() is first called. This surprises engineers who expect the code before the first yield to run on generator creation.",
+    memoryAnchor:
+      "A generator is a vending machine with a crank. Each .next() turns the crank once and a snack (value) drops out. The machine pauses between cranks and remembers which row it was on. yield = 'here is your snack, crank me again for the next one.'",
   },
   {
     id: "proxy-reflect",
@@ -730,6 +770,8 @@ const concepts: Concept[] = [
       "Proxy intercepts fundamental object operations with handler traps, enabling meta-programming: validation, reactivity, logging, and virtualization. Always use Reflect in trap bodies to forward operations correctly, especially with inheritance (the receiver parameter preserves correct this for prototype getters/setters). Vue 3's reactivity is the canonical production Proxy use case.",
     trap:
       "Proxies cannot be transparently used with built-in types that rely on internal slots — for example, a Proxy around a Map won't work because Map methods check for the [[MapData]] internal slot on the actual this, not the proxy. You must forward the 'this' correctly using the get trap: get(target, key) { const val = target[key]; return typeof val === 'function' ? val.bind(target) : val; }.",
+    memoryAnchor:
+      "Proxy is a bodyguard standing in front of an object. Every time someone tries to get, set, or delete a property, the bodyguard intercepts and decides what to do. Reflect is the bodyguard's earpiece to relay the original request faithfully.",
   },
   {
     id: "weakmap-weakset",
@@ -745,6 +787,8 @@ const concepts: Concept[] = [
       "WeakMap/WeakSet allow caching or metadata storage keyed by objects without preventing garbage collection of those objects. The classic use: a framework stores per-node metadata in a WeakMap<Node, Metadata> — when the node is removed from the DOM and dereferenced, the metadata is automatically eligible for GC. The limitation — no iteration, no size — is by design to preserve GC semantics.",
     trap:
       "WeakMap keys cannot be primitives. If you try to use a string or number as a WeakMap key, you get a TypeError. This rules out WeakMap as a general-purpose map replacement — it's specifically for object-keyed metadata patterns.",
+    memoryAnchor:
+      "WeakMap is a coat check at a club — it holds your coat (metadata) while you (the object) are inside, but the moment you leave (get garbage collected), your coat vanishes too. No inventory list, no way to count coats.",
   },
   // ── Performance & Memory ────────────────────────────────────────────────────
   {
@@ -761,6 +805,8 @@ const concepts: Concept[] = [
       "The most common JavaScript memory leaks are: event listeners not removed on component unmount, closures that inadvertently capture and hold large objects alive, and DOM references held in JavaScript while the node is removed from the tree (detached DOM subtrees). In SPAs, module-level or closure-scoped data that grows over time is a major source. Detect with Chrome's Memory panel heap snapshots; fix by explicitly removing listeners, nullifying references, and using WeakMap for object metadata.",
     trap:
       "Using an arrow function as an event listener makes it impossible to remove: element.addEventListener('click', () => handler()) — the arrow function is a new object each time, so removeEventListener with 'the same' arrow function won't match. Always store a reference to the listener function to remove it later.",
+    memoryAnchor:
+      "Memory leaks are like forgetting to turn off faucets in a house — event listeners, closures, and detached DOM nodes are dripping water. Individually tiny, but leave enough running and the house floods.",
   },
   {
     id: "debounce-throttle",
@@ -776,6 +822,8 @@ const concepts: Concept[] = [
       "Debounce collapses multiple rapid calls into one, firing after the quiet period — ideal for input events where you only care about the final value. Throttle limits call rate to once per interval — ideal for scroll/resize where you want regular updates but can't handle every event. Both prevent performance bottlenecks by reducing work. Can you implement debounce? — store a timer, clearTimeout on each call, setTimeout for the callback, return the wrapper function.",
     trap:
       "In React, creating a debounced function inside a functional component without useRef/useMemo creates a new debounce closure every render, resetting the timer state. This means the debounce never actually delays — every re-render gives you a fresh debounce with no pending timer. Store debounced functions in useRef.",
+    memoryAnchor:
+      "Debounce = elevator doors: they keep resetting the close timer every time someone walks in. Throttle = a subway train: it leaves every 5 minutes no matter how many people are waiting on the platform.",
   },
   {
     id: "v8-optimization",
@@ -791,6 +839,8 @@ const concepts: Concept[] = [
       "V8 optimizes code by building hidden classes for object shapes and using inline caches at property access sites. For maximum performance: initialize all object properties in the constructor (same order every time), avoid deleting properties, keep function argument types consistent, and avoid mixing integers and floats in typed arrays. Predictable, monomorphic code is what TurboFan can compile to machine code.",
     trap:
       "delete obj.property is highly detrimental to V8 optimization — it changes the object's hidden class, breaking the inline cache. Instead of deleting, set the property to undefined (same type slot, different value) or null. For truly optional properties that shouldn't exist, use Map instead of plain objects.",
+    memoryAnchor:
+      "Hidden classes are like cookie cutters — V8 makes one cutter per object shape. If all your cookies have the same shape, V8 stamps them out lightning fast. Change the shape mid-batch (add/delete a property) and V8 has to throw away the cutter and carve by hand.",
   },
   // ── Modules ─────────────────────────────────────────────────────────────────
   {
@@ -807,6 +857,8 @@ const concepts: Concept[] = [
       "ESM and CommonJS are fundamentally different: ESM is statically analyzed at parse time (enabling tree shaking), uses live bindings (exports reflect mutations), and runs in strict mode. CJS is dynamic (require is a runtime call), returns snapshots of module.exports, and works synchronously. In modern Node.js, prefer ESM with 'type: module'. The key interview point: ESM's static structure is what enables bundlers to tree-shake dead code.",
     trap:
       "ESM imports are LIVE BINDINGS, not copies. If a module exports let count = 0 and later mutates it, importing modules see the updated value. This is unlike CJS where you get a snapshot of the value at require() time. This live binding behavior is intentional for circular dependency support but can be surprising.",
+    memoryAnchor:
+      "CJS require() is taking a Polaroid photo — you get a snapshot, and the original can change without your photo updating. ESM import is a live security camera feed — you always see the current state in real time.",
   },
   {
     id: "dynamic-import",
@@ -822,6 +874,8 @@ const concepts: Concept[] = [
       "Dynamic import() loads modules asynchronously at runtime, returning a Promise of the module namespace. This enables route-level code splitting (only load what's needed for the current page), conditional polyfill loading, and lazy-loading heavy dependencies. Bundlers treat import() as a code-split point — everything below it becomes a separate chunk downloaded on demand.",
     trap:
       "import() is syntax, not a function — you cannot assign it to a variable, spread it, or use .call/.apply. Also: dynamic import of a default export requires .default from the namespace object: const mod = await import('./foo'); mod.default() — not mod().",
+    memoryAnchor:
+      "Dynamic import() is ordering food delivery instead of cooking at home. You only pay (download) when you are actually hungry (need the module), not when you wrote the grocery list (build time). Each import() call is a separate delivery order (chunk).",
   },
   {
     id: "tree-shaking",
@@ -837,6 +891,8 @@ const concepts: Concept[] = [
       "Tree shaking removes unused exports at build time using ESM's static import/export analysis — bundlers know at compile time exactly which exports are used. It requires ESM (not CJS), and libraries must mark side-effect-free files with 'sideEffects: false' in package.json. The practical impact: importing { debounce } from 'lodash-es' includes only debounce; importing from 'lodash' (CJS) includes the entire library.",
     trap:
       "Using barrel files (index.ts that re-exports everything) can break tree shaking if the bundler can't statically resolve which exports are used — especially with namespace re-exports (export * from './utils'). Some bundlers handle this well; others include the entire barrel. Profile your bundle with source-map-explorer or Bundle Analyzer before assuming tree shaking worked.",
+    memoryAnchor:
+      "Tree shaking is shaking a Christmas tree after the holidays — dead ornaments (unused exports) fall off, live ones (used imports) stay attached. Only works if the ornaments are on static hooks (ESM). Tangled wire lights (CJS) mean everything stays.",
   },
 ];
 

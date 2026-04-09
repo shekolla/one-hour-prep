@@ -258,6 +258,8 @@ const concepts: Concept[] = [
       "I default to a modular monolith for new products. Microservices make sense when: (1) distinct parts of the system have wildly different scaling profiles, (2) you need team autonomy across more than 3–4 teams, or (3) you have a proven bounded context that is stable enough to own its own schema. The migration path is always strangler fig — never a big-bang rewrite. The hardest part of microservices is not the technology; it's enforcing 'you own your data' so services don't share databases.",
     trap:
       "Saying 'microservices are more scalable' without qualification. A well-tuned monolith on read replicas often outperforms a naive microservices system with synchronous call chains. The bottleneck is almost always the database, not the application tier.",
+    memoryAnchor:
+      "Monolith = one giant Swiss Army knife (bulky but everything's right there). Microservices = a toolbox of separate tools (flexible but you keep losing the 10mm socket).",
   },
   {
     id: "event-driven-architecture",
@@ -273,6 +275,8 @@ const concepts: Concept[] = [
       "EDA is my default for cross-bounded-context communication when I can accept eventual consistency. I pair it with: the outbox pattern to eliminate dual-write races, idempotent consumers with deduplication keys, and partition keys aligned to the aggregate root. For schema evolution I use a schema registry (Confluent or AWS Glue) with backward-compatible Avro/Protobuf schemas and a compatibility policy enforced at publish time.",
     trap:
       "Treating EDA as a solution to all coupling problems. Event-driven choreography at scale becomes 'event spaghetti' — it is hard to trace the causal chain of a business process across 10 event types. For complex multi-step workflows, orchestration (Temporal, Step Functions) provides explicit process visibility at the cost of a central coordinator.",
+    memoryAnchor:
+      "EDA = a town crier shouting news in the square. Anyone who cares listens; the crier doesn't know or care who's in the crowd.",
   },
   {
     id: "cqrs",
@@ -288,6 +292,8 @@ const concepts: Concept[] = [
       "I reach for CQRS when query access patterns are fundamentally different from the write model — for example, a financial system where debits/credits are appended but users need real-time balance across multiple currencies. The command side uses an append-only ledger; the read side uses a projection that aggregates balances per account per currency. Event sourcing on the command side gives us a free audit trail and the ability to replay projections when regulatory requirements change.",
     trap:
       "Applying CQRS to every service. For simple CRUD, a single model with read replicas is sufficient. CQRS adds significant complexity (eventual consistency, projection management, operational overhead) and should only be introduced when the read/write impedance mismatch is causing real pain.",
+    memoryAnchor:
+      "CQRS = a restaurant with separate 'order' and 'pickup' counters. Writing your order (command) and reading the menu board (query) happen at totally different windows optimized for different speeds.",
   },
   {
     id: "event-sourcing",
@@ -303,6 +309,8 @@ const concepts: Concept[] = [
       "Event sourcing is justified when you have compliance requirements for a full audit log, need temporal query capability ('what was the state of account X at 3pm yesterday?'), or need to rebuild multiple different read projections from the same historical fact base. I pair it with snapshot every N events to bound replay time. For schema evolution I use upcasters in the event deserialization layer so consumers always receive the current schema version regardless of when the event was written.",
     trap:
       "Using event sourcing as a general-purpose database pattern. It is a specialized tool. Exposing the raw event store directly as an API violates encapsulation — the event structure is an implementation detail of the aggregate, not a public API.",
+    memoryAnchor:
+      "Event sourcing = your bank statement. It doesn't store 'balance = $500' — it stores every deposit and withdrawal ever. Replay the list to get the balance.",
   },
   {
     id: "saga-pattern",
@@ -318,6 +326,8 @@ const concepts: Concept[] = [
       "For an e-commerce order flow (reserve inventory → charge payment → confirm shipment), I use an orchestrated saga with the saga state persisted in Postgres. Each step is a command sent to the target service. On failure at any step, the orchestrator executes compensating commands in reverse: refund payment if already charged, release inventory reservation. I use idempotency keys on every command and the Temporal workflow engine to handle retries, timeouts, and state durability.",
     trap:
       "Trying to implement sagas without compensating transactions. You cannot simply 'roll back' a distributed transaction — the inventory service already decremented its count. Compensating transactions are domain operations (re-increment inventory) not technical rollbacks.",
+    memoryAnchor:
+      "Saga = planning a wedding across multiple vendors. If the caterer cancels, you can't 'undo' the cake tasting — you call each vendor to cancel and get refunds one by one.",
   },
 
   // ── Service Design ─────────────────────────────────────────────────────────
@@ -335,6 +345,8 @@ const concepts: Concept[] = [
       "I use event storming workshops with domain experts to identify bounded contexts. Key signals for a boundary: different teams own different parts, the domain language differs (same word means different things), or the data change rates are very different. Once I have candidate boundaries, I draw a context map to make the coupling explicit — if I see more than 2–3 conformist relationships, the boundaries probably need to be reconsidered.",
     trap:
       "Mapping bounded contexts 1:1 to database tables or REST resources rather than to business capabilities. Technical boundaries rarely align with domain boundaries.",
+    memoryAnchor:
+      "Bounded context = different departments in a hospital. 'Patient' means a billing record to finance and a medical chart to the ER — same word, totally different meaning depending on which floor you're on.",
   },
   {
     id: "api-gateway-vs-bff",
@@ -350,6 +362,8 @@ const concepts: Concept[] = [
       "I place an API gateway at the edge for cross-cutting concerns and deploy BFFs per major client type. The mobile BFF, for example, might aggregate a product detail page call that would otherwise require 4 separate API calls from the app — reducing startup time and battery usage. I keep business rules out of BFFs by enforcing a rule: if the logic would break a unit test if moved to the BFF, it belongs in a domain service.",
     trap:
       "Building a BFF that directly accesses other services' databases rather than calling their APIs. This recreates the coupling you were trying to avoid.",
+    memoryAnchor:
+      "API Gateway = the hotel front desk (handles check-in, directions, complaints for everyone). BFF = a personal concierge for VIP guests (knows exactly what YOU want and fetches it all in one trip).",
   },
   {
     id: "service-mesh",
@@ -365,6 +379,8 @@ const concepts: Concept[] = [
       "I adopt a service mesh when the team count exceeds the point where manually managing retries, circuit breakers, and mTLS in each service becomes inconsistent. The immediate wins are: (1) mTLS for zero-trust networking without code changes; (2) traffic shifting for canary deployments at the infrastructure level; (3) automatic trace propagation without SDK changes in every service. I start with Linkerd for its simplicity and move to Istio only if I need its advanced traffic management features.",
     trap:
       "Thinking a service mesh eliminates the need to design for failure in application code. The mesh can retry transient failures, but your service must still be idempotent for retries to be safe, and you still need circuit breakers for cascading failure scenarios where the mesh's retry amplifies load.",
+    memoryAnchor:
+      "Service mesh = invisible bodyguards walking beside every employee. They handle security checks and directions so workers focus on their actual job, not navigating the building.",
   },
   {
     id: "strangler-fig-pattern",
@@ -380,6 +396,8 @@ const concepts: Concept[] = [
       "My strangler fig implementation places an Nginx or AWS API Gateway in front of the monolith on day one, even before any extraction. This is low-risk and gives us routing control immediately. I extract services in order of highest change frequency and clearest bounded context — not necessarily the largest or most complex. Each extraction follows: extract interface → dual-write → backfill historical data → verify consistency → cut over → decommission monolith handler.",
     trap:
       "Attempting to extract a service that shares its database with five other monolith modules. Without resolving the data ownership first, you've created a distributed monolith. Always extract ownership of the data before extracting the service.",
+    memoryAnchor:
+      "Strangler fig = the vine that slowly grows around a tree and eventually replaces it. You never chop the old tree down — you let the new growth take over branch by branch.",
   },
   {
     id: "sidecar-pattern",
@@ -395,6 +413,8 @@ const concepts: Concept[] = [
       "I use the sidecar pattern for any infrastructure concern that would otherwise require updating 30+ service codebases. Secret injection is the highest-value use case: Vault Agent sidecar renews short-lived credentials automatically, eliminating the 'baked-in secrets' anti-pattern without requiring developers to integrate with Vault's SDK directly.",
     trap:
       "Putting business logic in a sidecar. Sidecars should be pure infrastructure concerns. If the sidecar needs to understand domain concepts, it belongs in the main service.",
+    memoryAnchor:
+      "Sidecar = a motorcycle sidecar. The passenger (sidecar container) rides alongside handling the map, snacks, and radio — but the driver (main service) does the actual driving.",
   },
 
   // ── Data Flow ──────────────────────────────────────────────────────────────
@@ -412,6 +432,8 @@ const concepts: Concept[] = [
       "My decision rule: if the caller needs the result of the operation to proceed (e.g., 'is this payment authorized?'), use sync. If the caller needs only to record the intent of an operation (e.g., 'send a shipping notification'), use async. For multi-step workflows I always use async + saga rather than sync chaining, because the availability math makes sync chaining at scale unreliable.",
     trap:
       "Building a synchronous RPC mesh between microservices and calling it microservices architecture. If every service call is synchronous HTTP, you have a distributed monolith with all of the complexity of distribution and none of the resilience benefits.",
+    memoryAnchor:
+      "Sync = a phone call (both parties must be on the line at the same time). Async = a voicemail (leave your message, they'll get to it when they can).",
   },
   {
     id: "choreography-vs-orchestration",
@@ -427,6 +449,8 @@ const concepts: Concept[] = [
       "For the order fulfillment flow in an e-commerce platform, I use orchestration within the order bounded context (one orchestrator manages: reserve inventory → charge payment → confirm order) because error handling and visibility matter, and it's one team's domain. Between bounded contexts (order confirmed → notify warehouse → trigger shipping), I use choreography via domain events so the warehouse team can evolve their consumer independently of order logic.",
     trap:
       "Implementing choreography without a way to observe the overall process state. 'Where is order #12345 in the process?' becomes impossible to answer quickly without a dedicated process monitoring projection that subscribes to all relevant events.",
+    memoryAnchor:
+      "Choreography = a jazz jam session (everyone improvises, no conductor). Orchestration = a symphony orchestra (the conductor tells each section exactly when to play).",
   },
   {
     id: "outbox-pattern",
@@ -442,6 +466,8 @@ const concepts: Concept[] = [
       "I implement the outbox pattern with Debezium and Kafka for any service that needs to publish events as part of a state-changing operation. The application writes to its domain tables and an outbox table in one transaction. Debezium watches the WAL and publishes outbox rows to Kafka. The application never calls the Kafka producer directly in the request path — this eliminates the dual-write problem and decouples event publishing latency from request latency.",
     trap:
       "Polling the outbox table with a background thread inside the application process. This works but introduces ordering issues (multiple application instances can publish out of order) and doesn't survive a JVM crash mid-publish. CDC via Debezium is the correct approach.",
+    memoryAnchor:
+      "Outbox pattern = writing a sticky note and dropping it in an 'outgoing mail' tray in the same motion as filing your paperwork. A mail carrier picks it up later — you never walk to the post office yourself.",
   },
   {
     id: "idempotency-keys",
@@ -457,6 +483,8 @@ const concepts: Concept[] = [
       "For a payment API, I require the client to send an idempotency key in every POST request. The API gateway stores the key in Redis with a 24-hour TTL. Before processing, it checks Redis: if the key exists and is complete, it returns the stored response; if it's in-flight, it returns 202 Accepted with a retry-after header. The key is stored atomically with the payment record in Postgres using a unique constraint on (user_id, idempotency_key).",
     trap:
       "Generating idempotency keys on the server side instead of the client. The point of idempotency keys is to allow the client to safely retry a request it is not sure was received. If the server generates the key, the client cannot retry with the same key.",
+    memoryAnchor:
+      "Idempotency key = the 'confirmation number' on your order. Accidentally hit 'Place Order' twice? The store sees the same confirmation number and says 'already got that one, chief.'",
   },
 
   // ── API Design ─────────────────────────────────────────────────────────────
@@ -474,6 +502,8 @@ const concepts: Concept[] = [
       "I use REST for public APIs (developer ergonomics, wide tooling support), gRPC for internal service-to-service calls (performance, strong typing, streaming), and GraphQL for BFF layers serving complex UIs (eliminates over-fetching, single endpoint for all client data needs). The decision is rarely one-or-the-other — a mature system uses all three in different layers.",
     trap:
       "Using gRPC for public APIs without a transcoding layer. Browser clients cannot call gRPC directly. You need grpc-gateway or Envoy transcoding to expose a REST/JSON facade over your gRPC services for external consumers.",
+    memoryAnchor:
+      "REST = a restaurant menu (fixed dishes, you get what's listed). GraphQL = a buffet (pick exactly what you want). gRPC = a drive-through intercom (super fast, pre-defined combos, but you need to speak the lingo).",
   },
   {
     id: "api-versioning",
@@ -489,6 +519,8 @@ const concepts: Concept[] = [
       "I design APIs for evolution from the start: required fields are never removed, field types are never changed, new fields are always optional with sensible defaults. I use Deprecation and Sunset headers to communicate end-of-life timelines with at least 6 months' notice. For major breaking changes (resource restructure), I introduce a new URL prefix (/v2/) but maintain the old version for the sunset period. I use Pact for consumer-driven contract tests to catch breaking changes in CI before they reach production.",
     trap:
       "Versioning every minor change. API version proliferation means maintaining v1, v2, v3, v4 in production simultaneously. Each new version is a maintenance burden. Prefer evolutionary design and only introduce a major version for genuine breaking changes.",
+    memoryAnchor:
+      "API versioning = building extensions on a house. Best case: add rooms without touching the old ones. Worst case: you're maintaining 8 different floor plans and nobody remembers which door leads where.",
   },
   {
     id: "pagination-strategies",
@@ -504,6 +536,8 @@ const concepts: Concept[] = [
       "I default to cursor-based pagination for all high-volume list APIs. The cursor is an opaque base64-encoded token containing the last-seen sort key (e.g., `{created_at: '2024-01-01T00:00:00Z', id: 'abc123'}`). The query uses a compound WHERE clause on the indexed columns. I expose offset pagination only for use cases where random access is required (e.g., a paginated admin table where the user can jump to page 50) and document its instability under writes.",
     trap:
       "Using OFFSET pagination on a table with millions of rows without warning. OFFSET 1000000 causes a full index scan of 1M rows before returning results — query time grows linearly with the offset value.",
+    memoryAnchor:
+      "Offset pagination = telling a librarian 'skip the first 10,000 books, then give me the next 20' (she has to walk past all 10,000). Cursor pagination = using a bookmark (open right where you left off).",
   },
   {
     id: "backward-compatibility",
@@ -519,6 +553,8 @@ const concepts: Concept[] = [
       "I treat backward compatibility as a first-class engineering constraint, not an afterthought. Every API change goes through a checklist: is this change additive? Does it add required fields? Does it remove or rename anything? Does it change validation behavior? For Protobuf APIs, I run `buf breaking` in CI to catch wire-format breaking changes automatically. For REST APIs I run Pact contract tests against all registered consumer contracts in the provider's CI pipeline.",
     trap:
       "Assuming that because you control all consumers you can ship breaking changes freely. In a microservices system, multiple services consume the same API, and they deploy independently. A breaking change in service A can silently break service B on its next deploy if you do not verify contracts.",
+    memoryAnchor:
+      "Backward compatibility = the headphone jack promise. You can add Bluetooth, add USB-C, add wireless — but the moment you remove the 3.5mm jack, a million old headphones become paperweights.",
   },
 
   // ── Infrastructure ─────────────────────────────────────────────────────────
@@ -536,6 +572,8 @@ const concepts: Concept[] = [
       "For a B2C platform with global users, I use a primary region (us-east-1) for all writes with Aurora Global Database providing cross-region read replicas at <1s lag. I route reads to the nearest region using Route 53 latency routing. For EU data residency compliance, I shard EU user data to an eu-west-1 cluster that never replicates to other regions. Disaster recovery uses AWS health checks to automatically fail over to a secondary region within 60 seconds.",
     trap:
       "Declaring a system 'multi-region' when the database is still single-region. Multi-region application servers in front of a single-region database just move your SPOF from the application to the database — the latency and availability problem remains.",
+    memoryAnchor:
+      "Multi-region = opening franchise restaurants in different cities. Each kitchen cooks locally for speed, but the recipe book (data) must stay in sync across all locations.",
   },
   {
     id: "active-active-vs-passive",
@@ -551,6 +589,8 @@ const concepts: Concept[] = [
       "For most systems I recommend active-passive with fast failover (Route 53 health checks + Aurora Global Database promote takes ~<60s) as the starting point — it's dramatically simpler than active-active. I move to active-active only when RTO requirements are under 30 seconds or when global write latency is causing user-facing impact. When I do active-active, I use regional write affinity: users are hashed to a home region for writes, with a consistent hashing scheme, and reads are served locally with cross-region replication lag tolerance.",
     trap:
       "Saying 'we're active-active' when the database is active-passive. The availability guarantee is determined by the weakest component in the chain. Application-level active-active with database-level active-passive provides the database's (lower) availability guarantee.",
+    memoryAnchor:
+      "Active-active = two goalkeepers both guarding the net simultaneously (tricky coordination). Active-passive = one keeper plays while the backup sits on the bench, ready to sub in if the starter gets injured.",
   },
   {
     id: "blue-green-canary",
@@ -566,6 +606,8 @@ const concepts: Concept[] = [
       "I use canary deployments as the default deployment strategy with automated rollback criteria. Argo Rollouts manages traffic weight: 5% canary for 15 minutes → check error rate < 0.1% and p99 latency < 200ms → 25% → check again → 100%. If any metric check fails, Argo automatically rolls back. For database migrations, I enforce the expand/contract pattern: every migration PR is reviewed for backward compatibility with the previous application version before merging.",
     trap:
       "Running blue-green deployments with a shared database that has a schema migration applied as part of the deployment. If the migration is not backward compatible with the blue version, the instant traffic switch breaks all blue instances. Schema and code deployments must be decoupled.",
+    memoryAnchor:
+      "Blue-green = having two identical stages — flip the curtain to reveal the new set instantly. Canary = sending one coal miner's canary into the new tunnel first; if it comes back alive, send everyone else.",
   },
   {
     id: "feature-flags",
@@ -581,6 +623,8 @@ const concepts: Concept[] = [
       "I use feature flags as the primary mechanism for both continuous delivery and operational safety. Every new user-facing feature ships behind a flag, enabling us to deploy code daily while controlling the release schedule independently. Flags are defined in LaunchDarkly with: targeting rules (user ID or percentage rollout), a kill switch (override to off for all users), and a removal date. The removal date is enforced by a bot that creates Jira tickets 2 weeks before expiry.",
     trap:
       "Using feature flags for configuration management (database URLs, timeouts, secret keys). Feature flags are for feature gating, not configuration. Configuration belongs in environment variables or a secrets manager with proper access control.",
+    memoryAnchor:
+      "Feature flags = light switches on a wall. Each switch controls a different room's lights — flip one on for beta testers, keep others off, and if something catches fire, kill the switch instantly without rewiring the house.",
   },
 
   // ── Observability ──────────────────────────────────────────────────────────
@@ -598,6 +642,8 @@ const concepts: Concept[] = [
       "I instrument all services with the OpenTelemetry SDK using auto-instrumentation, which captures 95% of spans without code changes. I configure the OTel Collector for tail-based sampling: always sample error traces and traces over 2s p99; sample 5% of normal traffic. For Kafka async boundaries, I use the OTel Kafka instrumentation that automatically propagates trace context in message headers. Traces go to Tempo for storage with Grafana for visualization, integrated with the same dashboards as metrics and logs.",
     trap:
       "Conflating distributed tracing with logging. Logs record discrete events; traces record the causal structure and timing of a request across services. Both are necessary — traces tell you where time is spent; logs tell you what happened at each step.",
+    memoryAnchor:
+      "Distributed tracing = a GPS tracker on a package. You can see every warehouse, truck, and sorting facility it passed through — and exactly how long it sat at each stop.",
   },
   {
     id: "red-metrics",
@@ -613,6 +659,8 @@ const concepts: Concept[] = [
       "I instrument every service with Prometheus histograms on three metrics: http_requests_total (labeled by endpoint, method, status_code), http_request_duration_seconds (histogram), and http_errors_total. Grafana dashboards show RED metrics per endpoint per deploy. SLO alerts fire when the 1-hour error burn rate exceeds 2x the allowed budget — fast enough to catch incidents before they exhaust the monthly budget, with enough signal to avoid false positives.",
     trap:
       "Setting alert thresholds on averages rather than percentiles. An average latency alert will miss the p99 degradation that your most demanding users experience.",
+    memoryAnchor:
+      "RED metrics = a doctor's vital signs check. Rate = heart rate (how fast is it pumping?). Errors = blood pressure spikes (something's wrong). Duration = reaction time (how sluggish is the patient?).",
   },
   {
     id: "slo-budgets",
@@ -628,6 +676,8 @@ const concepts: Concept[] = [
       "I set SLOs by starting with user research: what response time causes users to abandon? What error rate generates support tickets? I target SLOs 20% stricter than SLAs to provide a buffer. Error budget burn is tracked with multi-window alerting in Prometheus/Alertmanager. The error budget policy is: at 50% monthly burn, the team allocates 20% of sprint capacity to reliability work; at 100% burn, all feature work stops until the budget is restored.",
     trap:
       "Conflating SLO with SLA. If your SLO equals your SLA, any SLO violation is immediately an SLA breach and a customer-impacting business event. SLOs must be stricter than SLAs to provide headroom for operational response.",
+    memoryAnchor:
+      "Error budget = a jar of 'oops tokens.' Each outage spends a token. When the jar is empty, you stop shipping features and fix things. SLO is your personal speed limit; SLA is the speed that gets you a ticket.",
   },
 
   // ── Security HLD ───────────────────────────────────────────────────────────
@@ -645,6 +695,8 @@ const concepts: Concept[] = [
       "I implement zero-trust with: (1) Istio service mesh for mTLS between all services with SPIFFE/SPIRE workload identity; (2) Istio AuthorizationPolicy for service-to-service RBAC (only the order service can call the payment service); (3) OPA/Gatekeeper for Kubernetes admission control; (4) network policies with default-deny ingress/egress. External users authenticate via OAuth2/OIDC at the API gateway; internal service calls use mTLS certificates, no API keys or passwords.",
     trap:
       "Treating VPN as zero-trust. A VPN moves the trust boundary from the office network to the VPN endpoint — it is still perimeter-based security, not zero-trust. Zero-trust authenticates and authorizes every individual request regardless of network origin.",
+    memoryAnchor:
+      "Zero-trust = an airport where everyone goes through security at every gate, not just the entrance. Being 'inside the building' doesn't mean you skip the metal detector.",
   },
   {
     id: "oauth2-oidc",
@@ -660,6 +712,8 @@ const concepts: Concept[] = [
       "For a B2C web app, I use Authorization Code Flow + PKCE. The SPA never sees the client secret — the backend handles the token exchange. Access tokens are JWTs signed by the identity provider (Auth0, Cognito), verified by services using the provider's JWKS endpoint (with local key caching). Services do not accept access tokens older than 15 minutes. For service-to-service, I use Client Credentials Flow with short-lived tokens cached by the calling service to avoid per-request token fetches.",
     trap:
       "Storing JWTs in localStorage. XSS attacks can exfiltrate localStorage contents. Store tokens in httpOnly, Secure cookies — they are inaccessible to JavaScript. The 'token in memory' approach (React state) is XSS-safe but lost on page reload, requiring silent refresh on startup.",
+    memoryAnchor:
+      "OAuth2 = a valet parking ticket. You hand the valet (app) a limited ticket to park your car (access data) without giving them your actual car keys (password). OIDC adds a photo ID check so you prove who you are too.",
   },
   {
     id: "mtls-service-auth",
@@ -675,6 +729,8 @@ const concepts: Concept[] = [
       "In my Kubernetes architecture, Istio injects sidecar proxies and automatically provisions mTLS between all services using SPIFFE/SPIRE workload identity. I apply an Istio PeerAuthentication policy (mode: STRICT) at the mesh level to reject any plaintext inter-service traffic. AuthorizationPolicies then add RBAC: the frontend service is only allowed to call the product catalog and cart services — all other calls are denied by default. This gives us mTLS with zero application code changes and per-service RBAC in Kubernetes config.",
     trap:
       "Issuing long-lived client certificates (1-year validity) for service-to-service auth. If a certificate is compromised, it remains valid for the remainder of its lifetime. Use certificates with 1-hour TTL and automate rotation — the blast radius of a compromise is bounded to 1 hour.",
+    memoryAnchor:
+      "mTLS = a secret handshake where BOTH people must prove they know it. Regular TLS is like checking only the bouncer's badge; mTLS means the bouncer checks YOUR badge too.",
   },
 
   // ── Team Topology ──────────────────────────────────────────────────────────
@@ -692,6 +748,8 @@ const concepts: Concept[] = [
       "When designing a new microservices architecture, I start by drafting the target org chart alongside the service map. If I can't map each service to a team that can own it independently, the service boundaries are wrong. I apply the Team Topologies model: stream-aligned teams own customer-facing domains (checkout, catalog, search); a platform team provides the Kubernetes platform, CI/CD, and observability tooling as internal products; enabling teams are used temporarily to uplift stream-aligned teams on new capabilities (e.g., migrating to gRPC).",
     trap:
       "Designing a microservices architecture and then assigning team ownership as an afterthought. The org chart will reshape the architecture back to something it can maintain. Align teams and architecture from the first design session.",
+    memoryAnchor:
+      "Conway's Law = your software will look like your org chart whether you want it to or not. Four pizza teams build a four-service system. It's architectural gravity — you can't fight it, so design with it.",
   },
   {
     id: "platform-enabling-teams",
@@ -707,6 +765,8 @@ const concepts: Concept[] = [
       "I staff a platform team at roughly 1 platform engineer per 10 stream-aligned engineers. The platform team owns: the Kubernetes cluster, CI/CD pipelines (Argo CD, GitHub Actions templates), the internal service catalog, the observability stack (Prometheus, Grafana, Tempo), and golden path service templates. Stream-aligned teams can deploy to production on day one using the golden path — no tickets required. The platform team's OKR is measured by platform adoption and by stream-aligned team deployment frequency.",
     trap:
       "Treating platform team headcount as overhead. A well-staffed platform team multiplies the velocity of every stream-aligned team they support — it is one of the highest-leverage engineering investments a company can make.",
+    memoryAnchor:
+      "Platform team = the road construction crew. They don't deliver pizza, but every pizza delivery team goes faster because the roads are smooth. Enabling team = a driving instructor who rides along temporarily until you pass the test.",
   },
   {
     id: "cognitive-load",
@@ -722,6 +782,8 @@ const concepts: Concept[] = [
       "I use cognitive load as a design constraint when evaluating service decompositions. If a proposed service boundary requires team A to understand team B's domain model deeply to work with it, the boundary is in the wrong place. The test: can a new engineer on the team understand the team's entire service ownership within 2 weeks? If not, the scope is too large. I use internal dependency graphs to identify teams with high fan-in (many teams depend on them) — these teams have disproportionate cognitive load from coordination and must be addressed through either platform productization or boundary restructuring.",
     trap:
       "Confusing cognitive load with team size. Adding engineers to a high-cognitive-load team does not solve the problem — it adds coordination overhead. The solution is to reduce scope, improve tooling, or improve the quality of interfaces (cleaner APIs, better documentation, stronger contracts).",
+    memoryAnchor:
+      "Cognitive load = juggling. A team can juggle 3-4 balls reliably. Hand them 12 balls and they don't juggle faster — they just drop everything. Adding more jugglers doesn't help if all 12 balls must stay in one act.",
   },
 ];
 

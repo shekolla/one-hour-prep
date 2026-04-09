@@ -252,6 +252,8 @@ const concepts: Concept[] = [
       "Node.js uses a single thread for JavaScript execution backed by libuv for async I/O. Network I/O uses OS-native async primitives (epoll on Linux, kqueue on macOS), so it truly doesn't block a thread. File I/O and CPU-heavy operations like bcrypt run on libuv's internal thread pool (default 4 threads). This design achieves high concurrency for I/O-bound workloads but struggles with CPU-bound tasks that block the main thread.",
     trap:
       "Senior engineers often say 'Node.js is non-blocking' categorically—but file I/O in Node uses libuv's thread pool, not kernel async I/O. Four concurrent bcrypt calls will exhaust the pool and queue all subsequent fs operations, causing visible latency.",
+    memoryAnchor:
+      "Think of a restaurant with ONE waiter (main thread) and FOUR kitchen staff (thread pool). The waiter takes everyone's orders without waiting, but if all four cooks are making souffles (CPU work), even a simple salad order gets stuck in the kitchen queue.",
   },
   {
     id: "libuv",
@@ -267,6 +269,8 @@ const concepts: Concept[] = [
       "libuv is Node's cross-platform async I/O layer. For network sockets it uses OS-native async notification (epoll/kqueue/IOCP) with zero threads. For file I/O and CPU-heavy crypto it uses a thread pool (default 4 threads, tunable via UV_THREADPOOL_SIZE). Understanding the distinction matters because saturating the thread pool with bcrypt hashes will delay unrelated file system operations.",
     trap:
       "Candidates assume 'non-blocking I/O' means no threads are used. In reality, fs.readFile blocks a libuv thread pool thread. Under high concurrent file I/O load, setting UV_THREADPOOL_SIZE=1 (or leaving it at 4) creates a bottleneck that manifests as slow network responses—a subtle and hard-to-diagnose production issue.",
+    memoryAnchor:
+      "libuv is the backstage crew at a theater. Network I/O is like the lighting board (one person handles all lights). File I/O is like moving heavy sets—you need actual stagehands (threads), and you only have 4 by default.",
   },
   {
     id: "v8-engine",
@@ -282,6 +286,8 @@ const concepts: Concept[] = [
       "V8 JIT-compiles JavaScript using Ignition for initial interpretation and TurboFan for optimized machine code on hot paths. It uses generational garbage collection—frequent minor GC for short-lived objects and incremental major GC for long-lived ones. For production Node.js, understanding --max-old-space-size, avoiding heap fragmentation, and not breaking hidden class assumptions (consistent object shapes) are key performance levers.",
     trap:
       "Many engineers think GC pauses are irrelevant in Node.js because it's 'async'. Major GC (mark-sweep) stops all JavaScript execution on the main thread. A 500ms GC pause will stall every in-flight request for that duration. Monitoring process.memoryUsage().heapUsed and GC pause metrics is non-negotiable in production.",
+    memoryAnchor:
+      "V8 is like a two-gear car: Ignition is first gear (slow but always works), TurboFan is sixth gear (blazing fast but stalls if road conditions change—deoptimization). Garbage collection is the mandatory pit stop that freezes the entire race.",
   },
   {
     id: "nonblocking-io",
@@ -297,6 +303,8 @@ const concepts: Concept[] = [
       "Non-blocking I/O means Node doesn't wait for I/O to finish—it registers a callback and processes other events. This lets one thread serve thousands of simultaneous requests. The critical corollary: any synchronous CPU work on the main thread blocks all concurrent requests. Tools like node-clinic and the --inspect profiler identify event loop blockage.",
     trap:
       "JSON.parse is synchronous. Parsing a large request body (e.g., a 10MB JSON payload) on the main thread blocks the event loop for potentially hundreds of milliseconds, stalling all other requests—even if the underlying HTTP reading was async.",
+    memoryAnchor:
+      "Non-blocking I/O = a chef who never stands idle waiting for water to boil. He starts boiling, chops veggies, preps sauce. But if someone hands him a 50-pound block of cheese to grate (JSON.parse), he blocks the whole kitchen until he's done grating.",
   },
 
   // ── EVENT LOOP ────────────────────────────────────────────────────────────
@@ -314,6 +322,8 @@ const concepts: Concept[] = [
       "The event loop has six phases in order: timers → pending I/O → idle → poll → check → close. The poll phase is where Node blocks waiting for I/O if nothing else is pending. setImmediate fires in check (after poll), while setTimeout fires in timers (start of loop). Between every phase, Node drains process.nextTick first, then Promise .then() microtasks.",
     trap:
       "Many candidates memorize 'nextTick fires before promises' but miss that both drain between every phase transition, not just once per loop iteration. A deeply recursive nextTick chain starves I/O callbacks indefinitely because nextTick always wins the drain race.",
+    memoryAnchor:
+      "The event loop is a theme park ride with 6 stations (phases). The cart stops at each station in order. Between every station, VIP passengers (nextTick) and priority riders (Promises) get to cut the line and board first. The poll station is the lazy river—it idles there if nothing else is scheduled.",
   },
   {
     id: "process-nexttick",
@@ -329,6 +339,8 @@ const concepts: Concept[] = [
       "process.nextTick fires after the current synchronous code but before any I/O callbacks, timers, or setImmediate callbacks. It drains its entire queue before the event loop progresses. The risk: recursive nextTick calls starve I/O indefinitely. Use it for deferring work that must happen before I/O but after the current call stack, such as emitting events post-construction.",
     trap:
       "Using process.nextTick for recursion (e.g., recursive async iteration) instead of setImmediate starves the event loop. setImmediate yields to I/O between each callback; nextTick does not. This is a classic production footgun disguised as a micro-optimization.",
+    memoryAnchor:
+      "nextTick is the 'one more thing' friend who keeps saying 'wait, one more thing!' before you can leave the room. Recursive nextTick = that friend who never lets you leave. Ever. I/O starves to death at the door.",
   },
   {
     id: "setimmediate-vs-settimeout",
@@ -344,6 +356,8 @@ const concepts: Concept[] = [
       "setImmediate fires in the check phase (after poll); setTimeout(fn, 0) fires in the timers phase (start of loop). From the main module their order is non-deterministic. Inside an I/O callback, setImmediate always fires first. When you need to defer work until after I/O callbacks in the current iteration, setImmediate is the correct choice.",
     trap:
       "Assuming setTimeout(fn, 0) fires before setImmediate anywhere is wrong. The order is only guaranteed inside I/O callbacks. Benchmarks and tests that rely on their relative ordering from the main script will produce flaky results across machines and Node versions.",
+    memoryAnchor:
+      "setImmediate = 'I'll do it right after this meeting (poll phase).' setTimeout(0) = 'I'll do it first thing tomorrow morning (next timers phase).' Inside an I/O callback, you're already in the meeting, so setImmediate always wins the race home.",
   },
   {
     id: "microtask-queue",
@@ -359,6 +373,8 @@ const concepts: Concept[] = [
       "Microtasks (Promise callbacks, queueMicrotask) run after each synchronous block and between every event loop phase. process.nextTick has even higher priority and drains before Promise microtasks. Since Node.js 11, microtasks drain between phases, not just between full loop iterations—this changed observable behavior for code mixing setImmediate and resolved promises.",
     trap:
       "Awaiting inside a for-of loop over a large array doesn't yield I/O control. Each await on an already-resolved promise enqueues a microtask that runs before the next event loop phase—your loop monopolizes the main thread even though it's written with await.",
+    memoryAnchor:
+      "Microtasks are like post-it notes stuck to your current task. You MUST handle every post-it before moving to the next agenda item (phase). nextTick post-its are neon pink (highest priority); Promise post-its are yellow. A pile of 10,000 post-its = nothing else gets done.",
   },
 
   // ── STREAMS ───────────────────────────────────────────────────────────────
@@ -376,6 +392,8 @@ const concepts: Concept[] = [
       "Node has four stream types: Readable, Writable, Duplex (both), Transform (duplex that modifies data). The core contract: Readable produces data; Writable consumes it. Transform sits in between. The critical operational concern is backpressure—each stream type has a highWaterMark buffer, and producers must respect write() return values to avoid memory overflow.",
     trap:
       "ObjectMode streams change highWaterMark semantics: instead of bytes, it counts object instances. A highWaterMark of 16 in object mode buffers 16 objects, not 16 bytes. A stream of large objects in objectMode can silently buffer gigabytes before backpressure kicks in.",
+    memoryAnchor:
+      "Four types of water pipes: Readable = faucet (source), Writable = drain (sink), Duplex = garden hose (water flows both ways), Transform = water filter (changes what passes through). Every pipe has a pressure gauge (highWaterMark).",
   },
   {
     id: "backpressure",
@@ -391,6 +409,8 @@ const concepts: Concept[] = [
       "Backpressure prevents producer-consumer imbalance. writable.write() returns false when the internal buffer exceeds highWaterMark; producers must stop and wait for 'drain'. pipe() and stream.pipeline() handle this automatically. Manual stream consumption via for-await or direct write() calls requires explicit backpressure handling to avoid OOM crashes.",
     trap:
       "pipe() does not propagate errors—if the readable or writable emits an error, the other stream is not automatically destroyed, causing resource leaks (open file handles, sockets). Always use stream.pipeline() in production code, which handles error propagation and cleanup.",
+    memoryAnchor:
+      "Backpressure = a toilet that says 'STOP FLUSHING, I'm full!' If you ignore the signal (write() returning false) and keep flushing, the bathroom floods (OOM crash). pipe() is the auto-flush handle that listens for you.",
   },
   {
     id: "pipe-pipeline",
@@ -406,6 +426,8 @@ const concepts: Concept[] = [
       "pipe() manages backpressure automatically but silently ignores errors. stream.pipeline() is the production-safe alternative—it propagates errors, destroys all streams in the chain, and invokes a completion callback. In modern Node.js, `stream/promises` pipeline with async generators is the most ergonomic pattern for complex streaming ETL pipelines.",
     trap:
       "Chaining pipe() without error handlers is a common resource leak. If a gzip transform errors mid-stream, the source file stream and destination writable stay open. In production with many concurrent requests, this accumulates open file descriptors until EMFILE ('too many open files') crashes the process.",
+    memoryAnchor:
+      "pipe() is duct tape connecting hoses—cheap and fast but if one hose bursts, the others keep spraying water everywhere. pipeline() is professional plumbing with shut-off valves—one burst and everything closes cleanly.",
   },
   {
     id: "stream-modes",
@@ -421,6 +443,8 @@ const concepts: Concept[] = [
       "Readable streams start paused. Attaching a 'data' listener or calling pipe() switches to flowing mode, emitting data as fast as it's produced. Async iteration (for await...of) is the modern idiom that handles mode management automatically. The key risk in flowing mode is not having a fast enough consumer—data events emit regardless of consumer readiness.",
     trap:
       "Attaching a 'data' event listener then removing it leaves the stream in a null flowing state if readable.readableFlowing is false, potentially causing data loss on the next 'data' listener attachment. The stream may have already consumed buffered data that won't be re-emitted.",
+    memoryAnchor:
+      "Paused mode = a beer tap you pull manually (one glass at a time). Flowing mode = you opened the tap and walked away—beer pours nonstop whether anyone's drinking or not. Attaching a 'data' listener is like taping the tap open.",
   },
 
   // ── MODULES ───────────────────────────────────────────────────────────────
@@ -438,6 +462,8 @@ const concepts: Concept[] = [
       "CommonJS loads modules synchronously via require(), wrapping each module in a function that provides exports, require, module, __filename, __dirname. Modules are cached post-load, making module-level singletons reliable. The critical behavior: reassigning exports doesn't affect module.exports—only mutations to the exports object or direct assignment to module.exports work for export.",
     trap:
       "exports.foo = bar works because it mutates the object that module.exports points to. But exports = { foo: bar } reassigns the local variable, breaking the reference. The module still exports whatever module.exports holds (the original empty object). This silently exports nothing and is a classic footgun.",
+    memoryAnchor:
+      "CommonJS = sending a package via snail mail. You pack it up (module.exports), it ships synchronously, and the recipient gets a snapshot (copy). 'exports' is just a sticky note on the box—rip it off (reassign) and the box ships empty.",
   },
   {
     id: "esm",
@@ -453,6 +479,8 @@ const concepts: Concept[] = [
       "ESM uses static import/export analyzed at parse time, enabling tree-shaking and top-level await. Imports are live bindings to the exporting module's values. Loading is asynchronous (three phases: construct, instantiate, evaluate). Mixing CJS and ESM requires care: CJS can't require() ESM (no sync await), but ESM can import CJS via default import. Use dynamic import() to load ESM from CJS.",
     trap:
       "ESM live bindings mean `import { count } from './counter.js'` gives you a live read-only view of counter.js's count variable. If counter.js increments count, your imported binding reflects the new value. This is fundamentally different from CJS where you get a copy of the value at require() time—and it breaks destructuring-based memoization patterns.",
+    memoryAnchor:
+      "ESM = a shared Google Doc with live cursors. Everyone sees changes in real time (live bindings). CJS = emailing a PDF copy—you get whatever was written at send time and never see updates. ESM also scans the whole doc before opening (static analysis).",
   },
   {
     id: "module-resolution",
@@ -468,6 +496,8 @@ const concepts: Concept[] = [
       "Node resolves require()/import in order: (1) core modules, (2) relative/absolute paths with extension fallback (.js/.json/.node) and index.js fallback, (3) node_modules traversal up to root. The package.json exports field controls ESM and conditional CJS/ESM resolution, superseding the main field. Bare specifiers without a match in exports will throw ERR_PACKAGE_PATH_NOT_EXPORTED.",
     trap:
       "Adding a package.json exports field with only specific subpaths breaks all other deep imports of that package. Library authors who add exports without including all previously public paths cause semver-major breakage for consumers who were using undocumented deep imports—a common source of ecosystem pain when packages add ESM support.",
+    memoryAnchor:
+      "Module resolution is like a GPS that tries multiple routes: exact address first, then nearby streets (.js, .json), then the neighborhood index.js, then drives up the directory tree checking every node_modules town until it reaches the root. The 'exports' field in package.json is a bouncer list—unlisted paths get rejected at the door.",
   },
   {
     id: "circular-deps",
@@ -483,6 +513,8 @@ const concepts: Concept[] = [
       "CJS circular deps return a partial exports object—code relying on top-level exports of a cyclically-imported module sees an empty object. ESM circular deps use live bindings, which avoids the partial object problem but introduces TDZ errors if a binding is accessed before its providing module finishes evaluating. The safest resolution is restructuring to eliminate cycles by extracting shared code.",
     trap:
       "A common CJS circular dep bug: module A exports a class, module B imports it at the top level (for instanceof checks) and also re-exports something A needs. A loads B as part of its initialization; B's top-level require(A) returns A's partial exports (no class yet). Now every instanceof check in B silently fails because the class is undefined. The bug is invisible until you run specific code paths.",
+    memoryAnchor:
+      "Circular deps are two people each waiting for the other to finish talking before they speak. CJS handles it by giving you a half-written letter (partial exports). ESM gives you a sealed envelope that's empty until the writer finishes—open it too early and it explodes (ReferenceError).",
   },
 
   // ── PERFORMANCE ───────────────────────────────────────────────────────────
@@ -500,6 +532,8 @@ const concepts: Concept[] = [
       "Worker threads run JavaScript in parallel with true OS thread parallelism. Each worker has its own V8 isolate and event loop, communicating via postMessage (structured clone) or SharedArrayBuffer (zero-copy shared memory). Use workers for CPU-bound tasks to prevent event loop blocking. Worker creation is expensive (~50ms, ~30MB); use a worker pool (piscina) for high-frequency task execution.",
     trap:
       "postMessage performs a structured clone of transferred data, which is O(n) in data size. Passing a 100MB Buffer between workers via postMessage copies 100MB synchronously on the sending thread—blocking the event loop for potentially hundreds of milliseconds. Always transfer ownership with the transfer list: `postMessage(buffer, [buffer])` for zero-copy transfer.",
+    memoryAnchor:
+      "Worker threads = hiring contractors who each bring their own toolbox (V8 isolate) and work in separate rooms. They pass notes through a mail slot (postMessage). SharedArrayBuffer is a whiteboard in the hallway everyone can read/write—but you need locks (Atomics) or they'll scribble over each other.",
   },
   {
     id: "cluster-module",
@@ -515,6 +549,8 @@ const concepts: Concept[] = [
       "The cluster module forks N processes (typically one per CPU core) that all listen on the same port. The primary process accepts connections and distributes them to workers via IPC-passed socket handles. Workers are fully isolated processes with separate heaps. Cluster provides resilience (respawn crashed workers) and multi-core utilization but requires stateless application design or external session storage for sticky sessions.",
     trap:
       "In-memory caches (like node-cache or a plain Map) are worker-local. A cached item written by worker 1 is invisible to worker 2. Engineers migrating from single-process development to cluster mode discover this when cache hit rates drop to near zero under load. Use Redis or Memcached for shared state in clustered environments.",
+    memoryAnchor:
+      "Cluster = cloning yourself into N copies, each handling customers at a separate cash register but sharing the same store entrance (port). Each clone has its own brain (heap)—clone #1's shopping list (cache) is invisible to clone #2. Need shared memory? Use an external bulletin board (Redis).",
   },
   {
     id: "memory-leaks",
@@ -530,6 +566,8 @@ const concepts: Concept[] = [
       "Node.js memory leaks typically stem from retained closures, accumulating event listeners, unbounded global caches, or setInterval never being cleared. Diagnosis uses V8 heap snapshots (via --inspect and Chrome DevTools) to diff heap between suspected leak operations and trace the retention chain. In production, monitor heapUsed trend; a consistently rising sawtooth pattern without a ceiling indicates a leak.",
     trap:
       "Buffer.allocUnsafe(size) is tracked in process.memoryUsage().external, not heapUsed. Leaking Buffers (e.g., from streams that aren't properly closed) won't show up in heap snapshots or heapUsed metrics—you need to monitor external and arrayBuffers too. Large Buffer leaks can exhaust native heap memory without any V8 GC alarm.",
+    memoryAnchor:
+      "Memory leaks = a hoarder's house. Event listeners pile up like newspapers by the door. Global Maps grow like junk in the attic with no eviction day. Closures are boxes you forgot about that still hold references to heavy furniture. The heap snapshot is your intervention photo—compare before and after to find what's accumulating.",
   },
   {
     id: "cpu-profiling",
@@ -545,6 +583,8 @@ const concepts: Concept[] = [
       "Use `node --inspect` to open the V8 inspector, then connect Chrome DevTools to take CPU profiles and heap snapshots. The CPU flame graph shows time spent per function. For production, --prof generates low-overhead V8 tick logs, and clinic.js provides higher-level diagnostics. PerformanceObserver enables in-process event loop lag monitoring without external tooling.",
     trap:
       "The V8 inspector protocol has non-trivial overhead—attaching Chrome DevTools to a production process can change its performance characteristics. Functions that were JIT-compiled may deoptimize when the debugger attaches. For production profiling, prefer --prof (sampling profiler) or clinic flame (which uses --prof under the hood) over live DevTools attachment.",
+    memoryAnchor:
+      "CPU profiling is like a sports replay camera that snapshots the call stack every microsecond. The flame graph is a totem pole of function calls—wider blocks ate more CPU time. --inspect opens the VIP skybox (Chrome DevTools), but watching the game from the skybox changes how the players perform (observer effect).",
   },
 
   // ── SECURITY ──────────────────────────────────────────────────────────────
@@ -562,6 +602,8 @@ const concepts: Concept[] = [
       "Prototype pollution happens when user-controlled JSON with __proto__ or constructor keys is recursively merged into objects, poisoning Object.prototype globally. Mitigations: validate input keys (reject __proto__, constructor, prototype), use Object.create(null) for dictionaries, use Map for key-value stores, and consider Object.freeze(Object.prototype) at startup. npm audit and Snyk catch vulnerable dependency versions.",
     trap:
       "Object.assign() does not cause prototype pollution because it uses ownPropertyDescriptors—__proto__ is not an own property but an accessor on Object.prototype. Prototype pollution requires recursive merge (like _.merge). However, `JSON.parse('{\"__proto__\": {\"x\": 1}}')` does create an object with an own __proto__ property, which when assigned via a recursive merge does pollute. The distinction between JSON parse behavior and assignment behavior trips up engineers.",
+    memoryAnchor:
+      "Prototype pollution = someone sneaking into the city water supply (__proto__) and adding poison. Every faucet (object) in town now dispenses poisoned water ({isAdmin: true}). The fix: use bottled water (Object.create(null)) or lock the water plant (Object.freeze(Object.prototype)).",
   },
   {
     id: "path-traversal",
@@ -577,6 +619,8 @@ const concepts: Concept[] = [
       "Path traversal allows file system access outside intended directories via ../ sequences. The fix: resolve the user-provided path with path.resolve('/safe/base', userInput), then assert the result starts with '/safe/base/'. Never use path.join() alone as it resolves ../ but doesn't enforce a base constraint. URL-decode inputs before validation to prevent encoding bypass.",
     trap:
       "path.resolve('/base', '../etc/passwd') returns '/etc/passwd'—it resolves to an absolute path correctly, but a naive check for '/base' prefix passes because '/etc/passwd'.startsWith('/base') is false, which is actually correct behavior. The trap is thinking path.resolve prevents traversal rather than understanding it only resolves the path; the startsWith check is the actual security control.",
+    memoryAnchor:
+      "Path traversal = someone asking for 'Room 3, go back, back, back, into the vault.' The ../../../ is climbing stairs backwards out of the allowed floor. The fix: resolve the full address, then check 'are you still in the building?' (startsWith). path.resolve is just GPS—it tells you WHERE you'd end up, not whether you're ALLOWED there.",
   },
   {
     id: "ssrf",
@@ -592,6 +636,8 @@ const concepts: Concept[] = [
       "SSRF allows attackers to make the server fetch internal resources. Mitigate with: URL allowlisting, resolving target IPs and blocking private/loopback ranges (RFC 1918), enforcing https scheme-only, and network-level egress filtering. DNS rebinding bypasses DNS-based checks—validate the resolved IP at request time, not just at allowlist check time.",
     trap:
       "Checking the hostname against an allowlist before making a request is vulnerable to DNS rebinding. An attacker's domain passes the allowlist check resolving to a public IP, then DNS TTL expires and the attacker changes it to 169.254.169.254. The server makes the request to the now-internal IP. The fix requires checking the resolved IP address at both allowlist validation time and immediately before the TCP connection is established.",
+    memoryAnchor:
+      "SSRF = tricking your butler (server) into fetching something from the secret room (internal network) by handing him a note that says 'go to 169.254.169.254.' The butler has the keys you don't. DNS rebinding is giving the butler a legit address that magically changes to the secret room's address after the security check.",
   },
 
   // ── DEPLOYMENT ────────────────────────────────────────────────────────────
@@ -609,6 +655,8 @@ const concepts: Concept[] = [
       "Graceful shutdown: (1) Listen SIGTERM, (2) stop readiness probe, (3) wait for load balancer propagation (~5-10s sleep or pre-stop hook), (4) server.close() to stop accepting new connections, (5) await in-flight requests, (6) close DB connection pools, (7) process.exit(0). Keep-alive connections require explicit socket tracking and destruction since server.close() doesn't force-close them.",
     trap:
       "server.close() in Node.js stops accepting NEW connections but doesn't close existing keep-alive HTTP/1.1 connections. A client with a persistent connection remains connected indefinitely, preventing clean shutdown. Production servers must explicitly track and destroy active sockets or set a Connection: close header during the shutdown window.",
+    memoryAnchor:
+      "Graceful shutdown = closing a restaurant properly. SIGTERM is 'last call!' Stop seating new guests (server.close()), let current diners finish their meals (in-flight requests), clean the kitchen (close DB pools), lock the doors (process.exit). Skip any step and you get abandoned plates or a health code violation (SIGKILL).",
   },
   {
     id: "pm2",
@@ -624,6 +672,8 @@ const concepts: Concept[] = [
       "PM2 manages Node.js process lifecycle with crash restarts, cluster mode for multi-core utilization, and zero-downtime reloads. It's most valuable in non-containerized environments. In Kubernetes, the orchestrator replaces PM2's supervision role; running Node as PID 1 with proper SIGTERM handling is preferred. PM2's cluster mode is a convenient wrapper over Node.js's native cluster module.",
     trap:
       "In Docker containers, PM2 runs as a child of the Node process manager—meaning the container's PID 1 is Node.js running PM2, not your application. Signals (SIGTERM from Docker stop) go to PID 1 (PM2), which may or may not propagate them correctly to your workers. PM2 does forward SIGTERM, but startup/shutdown race conditions in containers cause subtler issues. Test signal handling explicitly in containerized environments.",
+    memoryAnchor:
+      "PM2 is a helicopter parent for your Node.js processes—restarts them when they crash, clones them across CPU cores (cluster mode), and does hot-swaps (zero-downtime reload). In Kubernetes, the helicopter parent is redundant because K8s is already the overprotective grandparent doing all of that.",
   },
   {
     id: "twelve-factor",
@@ -639,6 +689,8 @@ const concepts: Concept[] = [
       "12-factor principles most relevant to Node.js: configuration exclusively via environment variables, stateless processes (no in-memory session state), logs as stdout streams (not files), explicit dependency declarations (package.json with lockfile), and graceful fast startup/shutdown. Node.js microservices naturally fit this model; friction points are startup time (warmup) and secret management at scale.",
     trap:
       "Storing secrets in .env files committed to version control violates factor III and is a common breach vector. The .env file is for local development only; production config must come from the environment via an orchestration layer (Kubernetes Secrets, AWS SSM, Vault). Libraries like dotenv should be excluded from production builds or guarded with NODE_ENV checks.",
+    memoryAnchor:
+      "12-factor = the 'house rules' for well-behaved cloud tenants. Config in env vars (not hidden files), logs to stdout (yell out the window, let the building manager collect them), stateless processes (no hoarding stuff in your apartment between visitors), and fast move-in/move-out (disposability).",
   },
 
   // ── DATABASES ─────────────────────────────────────────────────────────────
@@ -656,6 +708,8 @@ const concepts: Concept[] = [
       "Connection pools reuse TCP connections to the database across queries, avoiding expensive handshake overhead. Key parameters: min, max, idleTimeout, connectionTimeout. Pool max × process count must not exceed DB max_connections. In clustered Node.js, each worker has its own pool—a cluster of 4 workers with pool max=25 creates 100 DB connections. Use PgBouncer for large-scale multi-instance deployments.",
     trap:
       "Async functions that open a pool connection in a try block but throw before releasing it will exhaust the pool. Always use try/finally to release: `const client = await pool.connect(); try { await client.query(...); } finally { client.release(); }`. Without the finally, the connection leaks and the pool eventually blocks all new queries with connection timeout errors.",
+    memoryAnchor:
+      "Connection pooling = a hotel with N rooms (connections). Guests (queries) check in and out instead of building a new room each time. If all 10 rooms are full, new guests wait in the lobby (queue). Forget to check out (release)? You exhaust the hotel and everyone sleeps in the lobby forever.",
   },
   {
     id: "async-queries",
@@ -671,6 +725,8 @@ const concepts: Concept[] = [
       "Use async/await for sequential queries, Promise.all for parallel independent queries. Database transactions require a single borrowed pool connection across all query calls—using pool.query() for transactions is a bug because different calls may use different connections. Always release connections in a finally block. Stream large result sets with database cursors to avoid buffering entire tables in memory.",
     trap:
       "await query1; await query2 when the queries are independent serializes them unnecessarily. Two 50ms queries run sequentially take 100ms; with Promise.all they take 50ms. In a high-traffic API this serialization compounds across thousands of requests. Profile query execution to identify sequential waits on independent operations and parallelize them.",
+    memoryAnchor:
+      "Sequential awaits = ordering food, waiting for it to arrive, THEN ordering drinks. Promise.all = ordering food AND drinks at the same time—both arrive in parallel. Transactions = one waiter (connection) who must carry ALL your dishes on one tray (BEGIN...COMMIT) or drop them all (ROLLBACK).",
   },
   {
     id: "n-plus-one",
@@ -686,6 +742,8 @@ const concepts: Concept[] = [
       "N+1 occurs when fetching a list triggers per-item queries for related data. Solutions: (1) SQL JOINs to fetch relations in one query, (2) eager loading in ORMs, (3) DataLoader pattern to batch independent lookups into a single IN-clause query. DataLoader is essential in GraphQL resolvers. Always check the number of queries with ORM query logging when developing features involving relations.",
     trap:
       "ORM lazy loading is the silent killer—accessing a relation property like `post.author` outside an explicitly loaded eager context issues a new SQL query invisibly. In a loop over 1000 posts, this creates 1000 queries with no error, just a slow endpoint. Always enable ORM query logging in development and set a query count alert in staging to catch N+1 regressions before production.",
+    memoryAnchor:
+      "N+1 = asking a librarian for 100 books, then making 100 separate trips to ask 'who wrote this one?' DataLoader is the smart librarian who collects all your author questions, waits a beat, then answers them all with ONE trip to the card catalog (SELECT WHERE id IN (...)).",
   },
 ];
 
