@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ConceptCard from "@/components/ConceptCard";
 import DepthFilter from "@/components/DepthFilter";
 import PracticeCard from "@/components/PracticeCard";
 import KnowledgeTreeVisual from "@/components/KnowledgeTreeVisual";
+import GlobalSearch from "@/components/GlobalSearch";
 import type { DepthLevel, TopicData } from "@/content/types";
 
 const sections = [
@@ -17,7 +19,15 @@ const sections = [
   { id: "practice", label: "Practice" },
 ];
 
-export default function TopicPageLayout({
+export default function TopicPageLayout(props: TopicData) {
+  return (
+    <Suspense>
+      <TopicPageLayoutInner {...props} />
+    </Suspense>
+  );
+}
+
+function TopicPageLayoutInner({
   topicTitle,
   topicMeta,
   lastUpdated,
@@ -31,11 +41,37 @@ export default function TopicPageLayout({
   commonMistakes,
   practiceQuestions,
 }: TopicData) {
+  const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState("mental-model");
   const [depth, setDepth] = useState<DepthLevel>("expected");
   const [showTraps, setShowTraps] = useState(false);
+  const [showAnchors, setShowAnchors] = useState(false);
   const [lastHourMode, setLastHourMode] = useState(false);
   const [activeConceptId, setActiveConceptId] = useState<string | undefined>(undefined);
+  const [reviewedCount, setReviewedCount] = useState(0);
+
+  // Handle deep-link from search results
+  useEffect(() => {
+    const conceptParam = searchParams.get("concept");
+    if (conceptParam && concepts.some((c) => c.id === conceptParam)) {
+      handleConceptSelect(conceptParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Count reviewed concepts from localStorage
+  useEffect(() => {
+    const count = concepts.filter((c) => localStorage.getItem(`reviewed:${c.id}`) === "1").length;
+    setReviewedCount(count);
+    const handleStorage = () => {
+      const newCount = concepts.filter((c) => localStorage.getItem(`reviewed:${c.id}`) === "1").length;
+      setReviewedCount(newCount);
+    };
+    window.addEventListener("storage", handleStorage);
+    // Poll for changes from same-tab updates
+    const interval = setInterval(handleStorage, 1000);
+    return () => { window.removeEventListener("storage", handleStorage); clearInterval(interval); };
+  }, [concepts]);
 
   const visibleConcepts = lastHourMode
     ? concepts.filter((c) => lastHourConceptIds.includes(c.id))
@@ -74,42 +110,66 @@ export default function TopicPageLayout({
             <p className="text-gray-600 text-xs mt-1">
               Last updated: {new Date(lastUpdated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
             </p>
+            {/* Progress bar */}
+            <div className="flex items-center gap-3 mt-3">
+              <div className="flex-1 max-w-[200px] bg-gray-800 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${concepts.length > 0 ? (reviewedCount / concepts.length) * 100 : 0}%` }}
+                />
+              </div>
+              <span className="text-gray-500 text-xs">
+                {reviewedCount}/{concepts.length} reviewed
+              </span>
+            </div>
           </div>
           <DepthFilter
             active={depth}
             onChange={setDepth}
             showTraps={showTraps}
             onToggleTraps={() => setShowTraps((v) => !v)}
+            showAnchors={showAnchors}
+            onToggleAnchors={() => setShowAnchors((v) => !v)}
             lastHourMode={lastHourMode}
             onToggleLastHour={() => setLastHourMode((v) => !v)}
           />
+        </div>
+        {/* Search */}
+        <div className="mt-4">
+          <GlobalSearch />
         </div>
       </div>
 
       {/* ── Last 1 Hour Compressed Cheatsheet ──────────────────────────── */}
       {lastHourMode && (
         <div className="mb-8 space-y-4">
-          <div className="bg-indigo-600/10 border border-indigo-500/30 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-indigo-400 text-lg">⏱</span>
-              <h2 className="text-indigo-300 font-semibold text-base">
-                Last 1 Hour — Compressed Cheatsheet
-              </h2>
-              <span className="ml-auto text-xs text-indigo-500 font-medium">
-                {lastHourConceptIds.length} concepts · scan in 5 min
-              </span>
+          <div className="relative bg-gradient-to-br from-indigo-950/80 via-gray-900 to-indigo-950/60 border-2 border-indigo-500/40 rounded-2xl p-6 shadow-lg shadow-indigo-500/10">
+            {/* Header bar */}
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-indigo-500/20">
+              <div className="bg-indigo-500/20 rounded-lg p-2">
+                <span className="text-indigo-300 text-xl" aria-hidden="true">⏱</span>
+              </div>
+              <div>
+                <h2 className="text-indigo-200 font-bold text-lg">
+                  Last 1 Hour — Compressed Cheatsheet
+                </h2>
+                <p className="text-indigo-500 text-xs font-medium">
+                  {lastHourConceptIds.length} highest-signal concepts · scan in 5 min
+                </p>
+              </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-5">
+            <div className="grid md:grid-cols-3 gap-6">
               {/* Key Takeaways */}
               <div>
-                <h3 className="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-indigo-300 font-bold mb-3 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" aria-hidden="true" />
                   Key Takeaways
                 </h3>
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {lastHourSummary.keyTakeaways.map((item, i) => (
                     <li key={i} className="flex items-start gap-2 text-gray-300 text-sm">
-                      <span className="text-indigo-500 shrink-0 mt-0.5 font-bold">{i + 1}.</span>
+                      <span className="text-indigo-400 shrink-0 mt-0.5 font-bold">{i + 1}.</span>
                       {item}
                     </li>
                   ))}
@@ -118,12 +178,13 @@ export default function TopicPageLayout({
 
               {/* Must-Know One-Liners */}
               <div>
-                <h3 className="text-xs uppercase tracking-wider text-indigo-400 font-semibold mb-2">
+                <h3 className="text-xs uppercase tracking-wider text-indigo-300 font-bold mb-3 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" aria-hidden="true" />
                   Must-Know One-Liners
                 </h3>
                 <div className="space-y-2">
                   {lastHourSummary.mustKnowConcepts.map((item, i) => (
-                    <div key={i} className="bg-gray-900/60 rounded-lg px-3 py-2">
+                    <div key={i} className="bg-gray-900/80 border border-indigo-500/10 rounded-lg px-3 py-2">
                       <div className="text-white text-xs font-semibold mb-0.5">{item.name}</div>
                       <div className="text-gray-400 text-xs leading-relaxed">{item.oneLiner}</div>
                     </div>
@@ -133,10 +194,11 @@ export default function TopicPageLayout({
 
               {/* Top Traps */}
               <div>
-                <h3 className="text-xs uppercase tracking-wider text-orange-400 font-semibold mb-2">
-                  ⚠ Top Traps to Avoid
+                <h3 className="text-xs uppercase tracking-wider text-orange-300 font-bold mb-3 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-400" aria-hidden="true" />
+                  Top Traps to Avoid
                 </h3>
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {lastHourSummary.topTraps.map((trap, i) => (
                     <li key={i} className="flex items-start gap-2 text-orange-200 text-sm">
                       <span className="text-orange-400 shrink-0 mt-0.5">•</span>
@@ -299,6 +361,7 @@ export default function TopicPageLayout({
                         concept={concept}
                         activeDepth={depth}
                         showTraps={showTraps}
+                        showAnchors={showAnchors}
                         highlighted={concept.id === activeConceptId}
                       />
                     ))}

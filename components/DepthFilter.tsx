@@ -15,6 +15,8 @@ interface DepthFilterProps {
   onToggleTraps: () => void;
   lastHourMode: boolean;
   onToggleLastHour: () => void;
+  showAnchors?: boolean;
+  onToggleAnchors?: () => void;
 }
 
 export default function DepthFilter({
@@ -24,6 +26,8 @@ export default function DepthFilter({
   onToggleTraps,
   lastHourMode,
   onToggleLastHour,
+  showAnchors,
+  onToggleAnchors,
 }: DepthFilterProps) {
   return (
     <div className="flex flex-wrap gap-2 items-center" role="toolbar" aria-label="Content filters">
@@ -59,6 +63,22 @@ export default function DepthFilter({
       >
         <span aria-hidden="true">⚠</span> Traps
       </button>
+
+      {/* Memory Anchors toggle */}
+      {onToggleAnchors && (
+        <button
+          onClick={onToggleAnchors}
+          aria-pressed={showAnchors}
+          aria-label="Show only concepts with memory anchors"
+          className={`flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 rounded-lg text-sm font-medium border transition-all focus-visible:outline-2 focus-visible:outline-indigo-500 focus-visible:outline-offset-2 ${
+            showAnchors
+              ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
+              : "bg-gray-900 border-gray-800 text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          <span aria-hidden="true">💡</span> Anchors
+        </button>
+      )}
 
       {/* Last 1 Hour Mode */}
       <button

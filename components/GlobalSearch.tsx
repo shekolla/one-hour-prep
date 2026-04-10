@@ -47,7 +47,7 @@ export default function GlobalSearch() {
   function navigate(entry: SearchEntry) {
     setOpen(false);
     setQuery("");
-    router.push(`/topics/${entry.topicSlug}#concept-${entry.conceptId}`);
+    router.push(`/topics/${entry.topicSlug}?concept=${entry.conceptId}`);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
