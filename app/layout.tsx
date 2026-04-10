@@ -10,7 +10,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://interviewprep.vercel.app"),
+  metadataBase: new URL("https://prepfast.in"),
   title: "InterviewPrep — Revise any tech topic in under 1 hour",
   description:
     "Free interview revision platform for mid-to-senior engineers. 13 topics, 367 concepts, depth-level filtering, knowledge trees, and a Last 1 Hour mode. Python, JavaScript, Node.js, Java, DSA, System Design, HLD, LLD, Kubernetes, Databases, React, AWS, SQL.",
