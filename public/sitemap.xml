@@ -11,4 +11,7 @@
   <url><loc>https://interviewprep.dev/topics/hld/</loc><priority>0.8</priority></url>
   <url><loc>https://interviewprep.dev/topics/lld/</loc><priority>0.8</priority></url>
   <url><loc>https://interviewprep.dev/topics/databases/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/react/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/aws/</loc><priority>0.8</priority></url>
+  <url><loc>https://interviewprep.dev/topics/sql/</loc><priority>0.8</priority></url>
 </urlset>

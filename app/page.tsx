@@ -92,6 +92,33 @@ const topics = [
     available: true,
     tag: "Data",
   },
+  {
+    slug: "react",
+    title: "React",
+    description: "Hooks, fiber architecture, reconciliation, server components, performance optimization",
+    readTime: "45–60 min",
+    level: "Mid–Senior",
+    available: true,
+    tag: "Frontend / Fullstack",
+  },
+  {
+    slug: "aws",
+    title: "AWS / Cloud",
+    description: "EC2, Lambda, S3, IAM, VPC, DynamoDB, CloudFormation — core cloud interview topics",
+    readTime: "50–65 min",
+    level: "Mid–Senior",
+    available: true,
+    tag: "DevOps",
+  },
+  {
+    slug: "sql",
+    title: "SQL Deep Dive",
+    description: "Window functions, CTEs, query plans, indexes, transactions, MVCC, database internals",
+    readTime: "45–60 min",
+    level: "Mid–Senior",
+    available: true,
+    tag: "Data",
+  },
 ];
 
 const tagColors: Record<string, string> = {
@@ -106,19 +133,19 @@ const tagColors: Record<string, string> = {
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <main className="max-w-4xl mx-auto px-4 py-16 flex-1">
+    <div className="min-h-screen flex flex-col overflow-x-hidden">
+      <main className="max-w-4xl w-full mx-auto px-4 py-16 flex-1">
         {/* Hero */}
         <header className="mb-16 text-center">
           <div className="inline-block bg-indigo-600/20 text-indigo-400 text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-widest">
             Interview Revision Platform
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
             Revise any tech topic
             <br />
             <span className="text-indigo-400">in under 1 hour.</span>
           </h1>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto">
+          <p className="text-gray-400 text-base sm:text-lg max-w-xl mx-auto">
             High-signal content for mid to senior engineers. Structured for fast
             recall, not passive reading.
           </p>
@@ -130,7 +157,7 @@ export default function Home() {
         </div>
 
         {/* Mode badges */}
-        <div className="flex flex-wrap justify-center gap-3 mb-14">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-14">
           {[
             { icon: "⏱", label: "Last 1 Hour Mode" },
             { icon: "🎤", label: "Interview Answer Mode" },
@@ -140,7 +167,7 @@ export default function Home() {
           ].map(({ icon, label }) => (
             <span
               key={label}
-              className="bg-gray-800 text-gray-300 text-sm px-4 py-2 rounded-full border border-gray-700"
+              className="bg-gray-800 text-gray-300 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-gray-700"
             >
               <span aria-hidden="true">{icon}</span> {label}
             </span>
@@ -150,10 +177,10 @@ export default function Home() {
         {/* Stats bar */}
         <div className="flex flex-wrap justify-center gap-6 mb-14 text-center" aria-label="Platform statistics">
           {[
-            { value: "10", label: "Topics" },
-            { value: "287", label: "Concepts" },
-            { value: "80", label: "Interview Patterns" },
-            { value: "119", label: "Common Mistakes" },
+            { value: "13", label: "Topics" },
+            { value: "367", label: "Concepts" },
+            { value: "104", label: "Interview Patterns" },
+            { value: "156", label: "Common Mistakes" },
           ].map(({ value, label }) => (
             <div key={label}>
               <div className="text-2xl font-bold text-white">{value}</div>

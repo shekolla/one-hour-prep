@@ -78,7 +78,7 @@ export default function GlobalSearch() {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder="Search 287 concepts across all topics..."
+          placeholder="Search 367 concepts across all topics..."
           aria-label="Search concepts"
           aria-expanded={open && results.length > 0}
           className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 pl-10 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
