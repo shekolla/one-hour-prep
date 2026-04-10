@@ -13,6 +13,7 @@ interface ConceptCardProps {
   concept: Concept;
   activeDepth: DepthLevel;
   showTraps: boolean;
+  showAnchors?: boolean;
   highlighted?: boolean;
 }
 
@@ -34,7 +35,7 @@ function useReviewed(conceptId: string) {
   return [reviewed, toggle] as const;
 }
 
-export default function ConceptCard({ concept, activeDepth, showTraps, highlighted }: ConceptCardProps) {
+export default function ConceptCard({ concept, activeDepth, showTraps, showAnchors, highlighted }: ConceptCardProps) {
   const [showInterview, setShowInterview] = useState(false);
   const [reviewed, toggleReviewed] = useReviewed(concept.id);
 
@@ -89,8 +90,8 @@ export default function ConceptCard({ concept, activeDepth, showTraps, highlight
         })}
       </div>
 
-      {/* Memory Anchor */}
-      {concept.memoryAnchor && (
+      {/* Memory Anchor — shown when Anchors toggle is on */}
+      {showAnchors && concept.memoryAnchor && (
         <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-purple-400 text-xs font-semibold uppercase tracking-wider">

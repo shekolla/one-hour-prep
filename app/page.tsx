@@ -180,7 +180,7 @@ export default function Home() {
             { value: "13", label: "Topics" },
             { value: "367", label: "Concepts" },
             { value: "104", label: "Interview Patterns" },
-            { value: "156", label: "Common Mistakes" },
+            { value: "157", label: "Common Mistakes" },
           ].map(({ value, label }) => (
             <div key={label}>
               <div className="text-2xl font-bold text-white">{value}</div>
