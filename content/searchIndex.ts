@@ -8,6 +8,9 @@ import { topicData as systemDesign } from "./system-design/data";
 import { topicData as hld } from "./hld/data";
 import { topicData as lld } from "./lld/data";
 import { topicData as databases } from "./databases/data";
+import { topicData as react } from "./react/data";
+import { topicData as aws } from "./aws/data";
+import { topicData as sql } from "./sql/data";
 
 export interface SearchEntry {
   conceptId: string;
@@ -29,6 +32,9 @@ const topics = [
   { slug: "hld", data: hld },
   { slug: "lld", data: lld },
   { slug: "databases", data: databases },
+  { slug: "react", data: react },
+  { slug: "aws", data: aws },
+  { slug: "sql", data: sql },
 ];
 
 export const searchIndex: SearchEntry[] = topics.flatMap(({ slug, data }) =>

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://interviewprep.vercel.app"),
   title: "InterviewPrep — Revise any tech topic in under 1 hour",
   description:
-    "Free interview revision platform for mid-to-senior engineers. 10 topics, 250+ concepts, depth-level filtering, knowledge trees, and a Last 1 Hour mode. Python, JavaScript, Node.js, Java, DSA, System Design, HLD, LLD, Kubernetes, Databases.",
+    "Free interview revision platform for mid-to-senior engineers. 13 topics, 367 concepts, depth-level filtering, knowledge trees, and a Last 1 Hour mode. Python, JavaScript, Node.js, Java, DSA, System Design, HLD, LLD, Kubernetes, Databases, React, AWS, SQL.",
   keywords: [
     "interview prep",
     "software engineer interview",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "InterviewPrep — Revise any tech topic in under 1 hour",
     description:
-      "Free revision platform for mid-to-senior engineers. 10 topics, 250+ concepts, depth levels, knowledge trees, and a compressed Last 1 Hour cheatsheet mode.",
+      "Free revision platform for mid-to-senior engineers. 13 topics, 367 concepts, depth levels, knowledge trees, and a compressed Last 1 Hour cheatsheet mode.",
     type: "website",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "InterviewPrep — Revise any tech topic in under 1 hour",
     description:
-      "Free revision platform for mid-to-senior engineers. 10 topics, 250+ concepts with depth levels and a Last 1 Hour cheatsheet.",
+      "Free revision platform for mid-to-senior engineers. 13 topics, 367 concepts with depth levels and a Last 1 Hour cheatsheet.",
     images: ["/og-image.png"],
   },
 };
@@ -51,7 +51,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-gray-950 text-gray-100 min-h-screen`}>
+      <body className={`${inter.className} bg-gray-950 text-gray-100 min-h-screen overflow-x-hidden`}>
         {children}
       </body>
     </html>
